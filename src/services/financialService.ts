@@ -1,0 +1,126 @@
+import { api } from './api'
+
+export const financialService = {
+  // Auth
+  login: async (credentials: { email: string; password: string }) => {
+    return api.post('/auth/login', credentials)
+  },
+
+  register: async (data: { name: string; email: string; password: string; password_confirmation: string }) => {
+    return api.post('/auth/register', data)
+  },
+
+  getMe: async () => {
+    return api.get('/auth/me')
+  },
+
+  logout: async () => {
+    return api.post('/auth/logout')
+  },
+
+  changePassword: async (data: {
+    current_password: string
+    password: string
+    password_confirmation: string
+  }) => {
+    return api.put('/auth/password', data)
+  },
+
+  // Bank Accounts
+  getBankAccounts: async () => {
+    return api.get('/bank-accounts')
+  },
+
+  createBankAccount: async (data: {
+    bank_name: string
+    name: string
+    type: string
+    current_balance: number
+    color_hex: string
+    is_active?: boolean
+  }) => {
+    return api.post('/bank-accounts', data)
+  },
+
+  adjustAccountBalance: async (accountId: number, current_balance: number) => {
+    return api.post(`/bank-accounts/${accountId}/adjust-balance`, { current_balance })
+  },
+
+  deleteBankAccount: async (accountId: number) => {
+    return api.delete(`/bank-accounts/${accountId}`)
+  },
+
+  // Credit Cards
+  getCreditCards: async () => {
+    return api.get('/credit-cards')
+  },
+
+  createCreditCard: async (data: {
+    name: string
+    brand: string
+    bank_account_id?: number
+    type?: 'credit' | 'debit'
+    total_limit?: number
+    daily_limit?: number
+    closing_day?: number
+    due_day?: number
+    color_hex: string
+    is_active?: boolean
+  }) => {
+    return api.post('/credit-cards', data)
+  },
+
+  getCardMonthlyLimits: async (cardId: number, months = 12) => {
+    return api.get(`/credit-cards/${cardId}/monthly-limits?months=${months}`)
+  },
+
+  deleteCreditCard: async (cardId: number) => {
+    return api.delete(`/credit-cards/${cardId}`)
+  },
+
+  // Fixed Bills (Upcoming Bills / Contas a Pagar)
+  getFixedBills: async () => {
+    return api.get('/fixed-bills')
+  },
+
+  payFixedBill: async (billId: number, data?: { amount?: number; payment_date?: string; bank_account_id?: number; credit_card_id?: number }) => {
+    return api.post(`/fixed-bills/${billId}/pay`, data || {})
+  },
+
+  createFixedBill: async (data: any) => {
+    return api.post('/fixed-bills', data)
+  },
+
+  // Subscriptions (Assinaturas e Rateio)
+  getSubscriptions: async () => {
+    return api.get('/subscriptions')
+  },
+
+  // Transactions
+  getTransactions: async (params?: Record<string, any>) => {
+    if (!params) return api.get('/transactions')
+    const searchParams = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, String(value))
+      }
+    }
+    const query = searchParams.toString()
+    return api.get(`/transactions${query ? `?${query}` : ''}`)
+  },
+
+  createTransaction: async (data: {
+    type: 'income' | 'expense'
+    amount: number
+    occurred_at: string
+    status: 'paid' | 'pending'
+    description: string
+    bank_account_id?: number
+    credit_card_id?: number
+    category_id?: number
+    is_installment?: boolean
+    installments_count?: number
+  }) => {
+    return api.post('/transactions', data)
+  },
+}
