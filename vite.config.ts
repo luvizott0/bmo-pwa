@@ -14,8 +14,19 @@ export default defineConfig({
     vueDevTools(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico'],
+      includeAssets: [
+        'favicon.ico',
+        'favicon.svg',
+        'apple-touch-icon.png',
+        'favicon-96x96.png',
+        'maskable_icon.png',
+        'web-app-manifest-192x192.png',
+        'web-app-manifest-512x512.png',
+      ],
       manifest: {
+        id: '/',
+        start_url: '/',
+        scope: '/',
         name: 'Flux - House & Finance Manager',
         short_name: 'Flux',
         description: 'Gerenciador financeiro pessoal, familiar e residencial com suporte offline',
@@ -25,6 +36,30 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
+            src: 'web-app-manifest-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'web-app-manifest-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'maskable_icon.png',
+            sizes: '2048x2048',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: 'favicon-96x96.png',
+            sizes: '96x96',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
             src: 'favicon.ico',
             sizes: '64x64 32x32 24x24 16x16',
             type: 'image/x-icon',
@@ -32,6 +67,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
@@ -45,6 +81,9 @@ export default defineConfig({
             },
           },
         ],
+      },
+      devOptions: {
+        enabled: true,
       },
     }),
   ],
