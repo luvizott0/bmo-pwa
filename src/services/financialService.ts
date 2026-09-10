@@ -96,6 +96,53 @@ export const financialService = {
     return api.get('/subscriptions')
   },
 
+  createSubscription: async (data: {
+    service_name: string
+    color_hex?: string | null
+    total_amount: number
+    billing_day: number
+    credit_card_id?: number | null
+    bank_account_id?: number | null
+    category_id?: number | null
+    notes?: string | null
+    members?: Array<{
+      name: string
+      installment_amount: number
+      contact?: string | null
+    }>
+  }) => {
+    return api.post('/subscriptions', data)
+  },
+
+  updateSubscription: async (id: number, data: any) => {
+    return api.put(`/subscriptions/${id}`, data)
+  },
+
+  deleteSubscription: async (id: number) => {
+    return api.delete(`/subscriptions/${id}`)
+  },
+
+  addSubscriptionMember: async (subscriptionId: number, data: { name: string; installment_amount: number; contact?: string | null }) => {
+    return api.post(`/subscriptions/${subscriptionId}/members`, data)
+  },
+
+  removeSubscriptionMember: async (subscriptionId: number, memberId: number) => {
+    return api.delete(`/subscriptions/${subscriptionId}/members/${memberId}`)
+  },
+
+  recordMemberPayment: async (
+    subscriptionId: number,
+    memberId: number,
+    data: {
+      reference_month: string
+      status: 'paid' | 'pending'
+      amount?: number
+      payment_date?: string | null
+    }
+  ) => {
+    return api.post(`/subscriptions/${subscriptionId}/members/${memberId}/payments`, data)
+  },
+
   // Transactions
   getTransactions: async (params?: Record<string, any>) => {
     if (!params) return api.get('/transactions')

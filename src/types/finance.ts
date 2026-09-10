@@ -59,27 +59,49 @@ export interface FixedBill {
   is_paid?: boolean
 }
 
+export interface SubscriptionPayment {
+  id: number
+  subscription_member_id: number
+  reference_month: string
+  amount: number
+  status: 'paid' | 'pending'
+  payment_date?: string | null
+}
+
 export interface SubscriptionMember {
   id: number
+  subscription_id?: number
   name: string
+  contact?: string | null
   initials: string
   avatar_color?: string
   installment_amount: number
   is_paid: boolean
+  payments?: SubscriptionPayment[]
 }
 
 export interface Subscription {
   id: number
   workspace_id?: number
   service_name: string
-  icon_type: 'NET' | 'SPO' | 'DIS' | 'PRIME' | 'GENERIC'
+  color_hex?: string
+  icon_type: string
   icon_bg: string
   total_amount: number
   billing_day: number
   due_text: string
+  category_id?: number | null
+  category_name?: string
+  credit_card_id?: number | null
+  bank_account_id?: number | null
+  credit_card?: { id: number; name: string; brand?: string; color_hex?: string; type?: 'credit' | 'debit' } | null
+  bank_account?: { id: number; name: string; color_hex?: string } | null
+  is_active?: boolean
+  notes?: string | null
   members: SubscriptionMember[]
   paid_count: number
   total_members: number
+  is_family: boolean
 }
 
 export interface QuarterlyMonth {

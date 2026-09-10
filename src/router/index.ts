@@ -34,7 +34,7 @@ const router = createRouter({
     {
       path: '/subscriptions',
       name: 'subscriptions',
-      component: DashboardView,
+      component: () => import('../views/SubscriptionsView.vue'),
       meta: { requiresAuth: true },
     },
     {

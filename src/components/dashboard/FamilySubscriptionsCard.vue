@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { formatCurrency } from '@/utils/formatters'
 import type { Subscription } from '@/types/finance'
 
 defineProps<{
   subscriptions: Subscription[]
 }>()
+
+const router = useRouter()
 </script>
 
 <template>
@@ -16,6 +19,7 @@ defineProps<{
       </h3>
       <button
         type="button"
+        @click="router.push('/subscriptions')"
         class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
       >
         Ver Todas
@@ -33,7 +37,7 @@ defineProps<{
         <div class="flex items-center gap-3.5">
           <div
             class="w-10 h-10 rounded-full flex items-center justify-center text-white font-extrabold text-[11px] tracking-wider shrink-0 shadow-xs"
-            :style="{ backgroundColor: sub.icon_bg }"
+            :style="{ backgroundColor: sub.color_hex || sub.icon_bg || '#6366f1' }"
           >
             {{ sub.icon_type }}
           </div>

@@ -248,37 +248,108 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
       // 3. Process Subscriptions (Family Subscriptions)
       if (subsRes?.data && Array.isArray(subsRes.data)) {
+        const currentMonth = new Date().toISOString().slice(0, 7)
+        const todayDay = new Date().getDate()
+
         familySubscriptions.value = subsRes.data.map((sub: any) => {
           const serviceName = sub.service_name || ''
-          const isNetflix = serviceName.toLowerCase().includes('netflix')
-          const isSpotify = serviceName.toLowerCase().includes('spotify')
+          const lower = serviceName.toLowerCase()
+
+          let icon_type = 'SUB'
+          let icon_bg = sub.color_hex || '#6366f1'
+          let category_name = 'Assinatura'
+
+          if (lower.includes('netflix')) {
+            icon_type = 'NET'
+            if (!sub.color_hex) icon_bg = '#141414'
+            category_name = 'Entretenimento'
+          } else if (lower.includes('spotify')) {
+            icon_type = 'SPO'
+            if (!sub.color_hex) icon_bg = '#1db954'
+            category_name = 'Música'
+          } else if (lower.includes('icloud') || lower.includes('apple')) {
+            icon_type = 'ICL'
+            if (!sub.color_hex) icon_bg = '#2563eb'
+            category_name = 'Armazenamento'
+          } else if (lower.includes('prime') || lower.includes('amazon')) {
+            icon_type = 'PRM'
+            if (!sub.color_hex) icon_bg = '#00a8e1'
+            category_name = 'Entretenimento'
+          } else if (lower.includes('disney')) {
+            icon_type = 'DIS'
+            if (!sub.color_hex) icon_bg = '#113ccf'
+            category_name = 'Entretenimento'
+          } else if (lower.includes('youtube')) {
+            icon_type = 'YOU'
+            if (!sub.color_hex) icon_bg = '#ef4444'
+            category_name = 'Vídeo'
+          } else if (lower.includes('chatgpt') || lower.includes('openai')) {
+            icon_type = 'GPT'
+            if (!sub.color_hex) icon_bg = '#10a37f'
+            category_name = 'Inteligência Artificial'
+          } else if (lower.includes('max') || lower.includes('hbo')) {
+            icon_type = 'MAX'
+            if (!sub.color_hex) icon_bg = '#002be7'
+            category_name = 'Streaming'
+          } else {
+            icon_type = serviceName.trim().slice(0, 3).toUpperCase() || 'SUB'
+          }
 
           const members = (sub.members || []).map((m: any) => {
-            const hasPaid = m.payments && m.payments.some((p: any) => p.status === 'paid' || p.status === 'pago')
+            const currentPayment = (m.payments || []).find((p: any) => p.reference_month === currentMonth)
+            const hasPaid = currentPayment
+              ? (currentPayment.status === 'paid' || currentPayment.status === 'pago')
+              : (m.payments && m.payments.some((p: any) => p.status === 'paid' || p.status === 'pago'))
+
             return {
               id: m.id,
+              subscription_id: sub.id,
               name: m.name,
+              contact: m.contact,
               initials: m.name ? m.name.charAt(0).toUpperCase() : 'U',
+              avatar_color: '#10b981',
               installment_amount: Number(m.installment_amount || 0),
               is_paid: !!hasPaid,
+              payments: m.payments || [],
             }
           })
 
           const paidCount = members.filter((m: any) => m.is_paid).length
-          const daysUntilDue = Math.max(1, sub.billing_day - new Date().getDate())
+          const diffDays = Number(sub.billing_day || 1) - todayDay
+          let due_text = ''
+          if (diffDays === 0) {
+            due_text = 'Vence hoje'
+          } else if (diffDays > 0) {
+            due_text = `Vence dia ${sub.billing_day} (${diffDays}d)`
+          } else {
+            due_text = `Venceu dia ${sub.billing_day} (${Math.abs(diffDays)}d atrás)`
+          }
+
+          const card = sub.credit_card || (sub.credit_card_id ? creditCards.value.find(c => c.id === sub.credit_card_id) : null)
+          const account = sub.bank_account || (sub.bank_account_id ? bankAccounts.value.find(a => a.id === sub.bank_account_id) : null)
 
           return {
             id: sub.id,
             workspace_id: sub.workspace_id,
             service_name: serviceName,
-            icon_type: isNetflix ? 'NET' : isSpotify ? 'SPO' : 'GENERIC',
-            icon_bg: isNetflix ? '#141414' : isSpotify ? '#1db954' : '#6366f1',
+            color_hex: sub.color_hex || icon_bg,
+            icon_type,
+            icon_bg: sub.color_hex || icon_bg,
             total_amount: Number(sub.total_amount || 0),
-            billing_day: sub.billing_day,
-            due_text: `Vence em ${daysUntilDue} dias`,
+            billing_day: Number(sub.billing_day || 1),
+            due_text,
+            category_id: sub.category_id,
+            category_name: sub.category?.name || category_name,
+            credit_card_id: sub.credit_card_id,
+            bank_account_id: sub.bank_account_id,
+            credit_card: card,
+            bank_account: account,
+            is_active: sub.is_active !== undefined ? !!sub.is_active : true,
+            notes: sub.notes,
             members,
             paid_count: paidCount,
             total_members: members.length || 1,
+            is_family: members.length > 0,
           }
         })
       }
@@ -702,6 +773,60 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  const createSubscription = async (payload: {
+    service_name: string
+    color_hex?: string | null
+    total_amount: number
+    billing_day: number
+    credit_card_id?: number | null
+    bank_account_id?: number | null
+    category_id?: number | null
+    notes?: string | null
+    members?: Array<{
+      name: string
+      installment_amount: number
+      contact?: string | null
+    }>
+  }) => {
+    const res = await financialService.createSubscription(payload)
+    await fetchDashboardData()
+    return res
+  }
+
+  const deleteSubscription = async (id: number) => {
+    familySubscriptions.value = familySubscriptions.value.filter(s => s.id !== id)
+    saveStateToStorage()
+    try {
+      await financialService.deleteSubscription(id)
+      await fetchDashboardData()
+    } catch (e) {
+      console.warn('Falha ao excluir assinatura na API', e)
+    }
+  }
+
+  const toggleMemberPayment = async (subscriptionId: number, memberId: number) => {
+    const sub = familySubscriptions.value.find(s => s.id === subscriptionId)
+    if (!sub) return
+
+    const member = sub.members.find(m => m.id === memberId)
+    if (!member) return
+
+    // Optimistic toggle
+    member.is_paid = !member.is_paid
+    sub.paid_count = sub.members.filter(m => m.is_paid).length
+    saveStateToStorage()
+
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    try {
+      await financialService.recordMemberPayment(subscriptionId, memberId, {
+        reference_month: currentMonth,
+        status: member.is_paid ? 'paid' : 'pending',
+      })
+    } catch (e) {
+      console.warn('Falha ao registrar pagamento do membro na API', e)
+    }
+  }
+
   const fetchFullTransactions = async (params?: Record<string, any>) => {
     try {
       const response = await financialService.getTransactions(params)
@@ -734,6 +859,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
     totalAccountsCount,
     fetchDashboardData,
     fetchFullTransactions,
+    createSubscription,
+    deleteSubscription,
+    toggleMemberPayment,
     resetState,
     addTransaction,
     toggleBillPaid,
