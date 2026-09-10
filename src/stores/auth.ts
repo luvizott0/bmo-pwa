@@ -31,6 +31,8 @@ export const useAuthStore = defineStore('auth', () => {
     activeWorkspaceId.value = null
     localStorage.removeItem('flux_auth_token')
     localStorage.removeItem('flux_active_workspace_id')
+    localStorage.removeItem('flux_dashboard_state_v1')
+    localStorage.removeItem('flux_dashboard_state_v2')
   }
 
   const login = async (email: string, password: string) => {

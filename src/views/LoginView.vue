@@ -9,8 +9,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
 
-const email = ref('alex@bmo.app')
-const password = ref('password')
+const email = ref('')
+const password = ref('')
 const showPassword = ref(false)
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
@@ -35,12 +35,6 @@ const handleLogin = async () => {
   } finally {
     isSubmitting.value = false
   }
-}
-
-const fillDemoCredentials = async () => {
-  email.value = 'alex@bmo.app'
-  password.value = 'password'
-  await handleLogin()
 }
 </script>
 
@@ -133,26 +127,6 @@ const fillDemoCredentials = async () => {
         </button>
       </form>
 
-      <!-- Divider -->
-      <div class="relative my-6">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-slate-100"></div>
-        </div>
-        <div class="relative flex justify-center text-xs uppercase">
-          <span class="bg-white px-3 text-slate-400 font-bold tracking-wider">ou</span>
-        </div>
-      </div>
-
-      <!-- Quick Demo Login Button -->
-      <button
-        type="button"
-        @click="fillDemoCredentials"
-        :disabled="isSubmitting"
-        class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 active:bg-indigo-100/80 text-indigo-700 text-xs sm:text-sm font-bold transition-all cursor-pointer disabled:opacity-50"
-      >
-        <Sparkles class="w-4 h-4 text-indigo-600" />
-        <span>Entrar com Conta Demo (Alex)</span>
-      </button>
     </div>
 
     <!-- Security footnote -->

@@ -13,22 +13,22 @@ import type {
 import { financialService } from '@/services/financialService'
 import { useAuthStore } from './auth'
 
-const STORAGE_KEY = 'flux_dashboard_state_v1'
+const STORAGE_KEY = 'flux_dashboard_state_v2'
 const QUEUE_STORAGE_KEY = 'flux_offline_queue_v1'
 
 const defaultSummary: DashboardSummary = {
-  total_balance: 4848.11,
+  total_balance: 0,
   balance_period: 'este mês',
-  monthly_income: 5050.00,
-  monthly_expenses: 201.89,
-  user_name: 'Alex',
+  monthly_income: 0,
+  monthly_expenses: 0,
+  user_name: '',
   greeting_subtitle: 'Suas finanças estão saudáveis.',
 }
 
 const defaultQuarterlyData: QuarterlyMonth[] = [
-  { month: 'Jul', income: 4300, expenses: 1450 },
-  { month: 'Ago', income: 4100, expenses: 1300 },
-  { month: 'Set', income: 5050, expenses: 201.89 },
+  { month: 'Jul', income: 0, expenses: 0 },
+  { month: 'Ago', income: 0, expenses: 0 },
+  { month: 'Set', income: 0, expenses: 0 },
 ]
 
 export const useDashboardStore = defineStore('dashboard', () => {
@@ -120,6 +120,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     apiError.value = null
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('flux_dashboard_state_v1')
       localStorage.removeItem(QUEUE_STORAGE_KEY)
     } catch (e) {
       console.warn('Falha ao limpar armazenamento local', e)
@@ -391,38 +392,46 @@ export const useDashboardStore = defineStore('dashboard', () => {
           created_at: tx.created_at,
         }))
 
-        let septIncome = 0
-        let septExpense = 0
-        let augIncome = 0
-        let augExpense = 0
-        let julIncome = 0
-        let julExpense = 0
+        const now = new Date()
+        const currentMonthNumber = String(now.getMonth() + 1).padStart(2, '0')
+        const prevMonthNumber = String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, '0')
+        const prev2MonthNumber = String(now.getMonth() <= 1 ? now.getMonth() + 11 : now.getMonth() - 1).padStart(2, '0')
+
+        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        const currentMonthName = monthNames[now.getMonth()] ?? ''
+        const prevMonthName = monthNames[(now.getMonth() + 11) % 12] ?? ''
+        const prev2MonthName = monthNames[(now.getMonth() + 10) % 12] ?? ''
+
+        let currentIncome = 0
+        let currentExpense = 0
+        let prevIncome = 0
+        let prevExpense = 0
+        let prev2Income = 0
+        let prev2Expense = 0
 
         for (const tx of txRes.data) {
           const amount = Number(tx.amount ?? tx.valor ?? 0)
           const dateStr = tx.occurred_at || tx.data_ocorrencia || ''
-          const month = dateStr.slice(5, 7) // '07', '08', '09'
+          const month = dateStr.slice(5, 7)
 
           if (tx.type === 'income' || tx.tipo === 'receita') {
-            if (month === '09') septIncome += amount
-            else if (month === '08') augIncome += amount
-            else if (month === '07') julIncome += amount
+            if (month === currentMonthNumber) currentIncome += amount
+            else if (month === prevMonthNumber) prevIncome += amount
+            else if (month === prev2MonthNumber) prev2Income += amount
           } else {
-            if (month === '09') septExpense += amount
-            else if (month === '08') augExpense += amount
-            else if (month === '07') julExpense += amount
+            if (month === currentMonthNumber) currentExpense += amount
+            else if (month === prevMonthNumber) prevExpense += amount
+            else if (month === prev2MonthNumber) prev2Expense += amount
           }
         }
 
-        if (septIncome > 0 || septExpense > 0) {
-          summary.value.monthly_income = septIncome || 5050.00
-          summary.value.monthly_expenses = septExpense || 201.89
-        }
+        summary.value.monthly_income = Math.round(currentIncome * 100) / 100
+        summary.value.monthly_expenses = Math.round(currentExpense * 100) / 100
 
         quarterlyData.value = [
-          { month: 'Jul', income: julIncome || 4300, expenses: julExpense || 1450 },
-          { month: 'Ago', income: augIncome || 4100, expenses: augExpense || 1300 },
-          { month: 'Set', income: septIncome || 5050, expenses: septExpense || 201.89 },
+          { month: prev2MonthName, income: Math.round(prev2Income * 100) / 100, expenses: Math.round(prev2Expense * 100) / 100 },
+          { month: prevMonthName, income: Math.round(prevIncome * 100) / 100, expenses: Math.round(prevExpense * 100) / 100 },
+          { month: currentMonthName, income: Math.round(currentIncome * 100) / 100, expenses: Math.round(currentExpense * 100) / 100 },
         ]
       }
 

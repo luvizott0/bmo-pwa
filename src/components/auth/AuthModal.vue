@@ -17,9 +17,9 @@ const dashboardStore = useDashboardStore()
 
 const mode = ref<'login' | 'register'>('login')
 const name = ref('')
-const email = ref('alex@bmo.app')
-const password = ref('password')
-const passwordConfirmation = ref('password')
+const email = ref('')
+const password = ref('')
+const passwordConfirmation = ref('')
 const errorMessage = ref<string | null>(null)
 const isSubmitting = ref(false)
 
@@ -77,7 +77,7 @@ const handleSubmit = async () => {
             v-model="name"
             type="text"
             required
-            placeholder="Alex"
+            placeholder="Nome Completo"
             class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
           />
         </div>
@@ -90,7 +90,7 @@ const handleSubmit = async () => {
             v-model="email"
             type="email"
             required
-            placeholder="alex@bmo.app"
+            placeholder="seu@email.com"
             class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
           />
         </div>
