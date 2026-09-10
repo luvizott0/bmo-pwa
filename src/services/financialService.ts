@@ -79,16 +79,36 @@ export const financialService = {
   },
 
   // Fixed Bills (Upcoming Bills / Contas a Pagar)
-  getFixedBills: async () => {
-    return api.get('/fixed-bills')
+  getFixedBills: async (params?: { reference_month?: string; active_only?: number }) => {
+    let url = '/fixed-bills'
+    if (params) {
+      const query = new URLSearchParams()
+      if (params.reference_month) query.set('reference_month', params.reference_month)
+      if (params.active_only !== undefined) query.set('active_only', String(params.active_only))
+      const qStr = query.toString()
+      if (qStr) url += `?${qStr}`
+    }
+    return api.get(url)
   },
 
   payFixedBill: async (billId: number, data?: { amount?: number; payment_date?: string; bank_account_id?: number; credit_card_id?: number }) => {
     return api.post(`/fixed-bills/${billId}/pay`, data || {})
   },
 
+  unpayFixedBill: async (billId: number, data?: { reference_month?: string }) => {
+    return api.post(`/fixed-bills/${billId}/unpay`, data || {})
+  },
+
   createFixedBill: async (data: any) => {
     return api.post('/fixed-bills', data)
+  },
+
+  updateFixedBill: async (id: number, data: any) => {
+    return api.put(`/fixed-bills/${id}`, data)
+  },
+
+  deleteFixedBill: async (id: number) => {
+    return api.delete(`/fixed-bills/${id}`)
   },
 
   // Subscriptions (Assinaturas e Rateio)

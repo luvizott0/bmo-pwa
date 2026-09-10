@@ -44,19 +44,38 @@ export interface MonthlyCardLimit {
   utilization_percentage: number
 }
 
+export interface FixedBillPayment {
+  id: number
+  amount: number
+  occurred_at: string
+  reference_month: string
+  status: string
+  bank_account_id?: number | null
+  credit_card_id?: number | null
+}
+
 export interface FixedBill {
   id: number
   workspace_id?: number
   name: string
+  color_hex?: string
+  icon_type?: string
   type: 'expense' | 'income'
   estimated_amount: number
   due_day: number
+  category_id?: number | null
+  preferred_bank_account_id?: number | null
+  preferred_bank_account?: BankAccount | null
+  category?: { id: number; name: string; color_hex?: string; icon?: string } | null
   is_active: boolean
   is_reminder_active: boolean
   reminder_days_before?: number
+  notes?: string | null
   status: 'urgent' | 'pending' | 'scheduled' | 'paid'
   status_text: string
   is_paid?: boolean
+  current_payment?: FixedBillPayment | null
+  payments?: FixedBillPayment[]
 }
 
 export interface SubscriptionPayment {

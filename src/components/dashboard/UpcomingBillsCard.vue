@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { Check, CheckCircle2 } from 'lucide-vue-next'
 import { formatCurrency } from '@/utils/formatters'
 import type { FixedBill } from '@/types/finance'
@@ -10,6 +11,8 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'togglePaid', billId: number): void
 }>()
+
+const router = useRouter()
 
 const getDotColor = (bill: FixedBill) => {
   if (bill.is_paid) return 'bg-emerald-500 ring-2 ring-emerald-200'
@@ -33,9 +36,13 @@ const getStatusTextColor = (bill: FixedBill) => {
       <h3 class="text-base sm:text-lg font-bold tracking-tight text-slate-900">
         Próximas Contas
       </h3>
-      <span class="text-xs font-semibold text-slate-400">
-        Contas a Pagar
-      </span>
+      <button
+        type="button"
+        @click="router.push('/fixed-expenses')"
+        class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
+      >
+        Ver Todas
+      </button>
     </div>
 
     <!-- Bills List -->

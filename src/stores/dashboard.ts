@@ -218,7 +218,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       if (billsRes?.data && Array.isArray(billsRes.data)) {
         const today = new Date().getDate()
         upcomingBills.value = billsRes.data.map((bill: any) => {
-          const diffDays = bill.due_day - today
+          const diffDays = Number(bill.due_day || 1) - today
           let status: 'urgent' | 'pending' | 'scheduled' = 'scheduled'
           let status_text = `Agendado • ${Math.abs(diffDays)} Dias`
 
@@ -230,18 +230,32 @@ export const useDashboardStore = defineStore('dashboard', () => {
             status_text = `Pendente • ${diffDays} Dias`
           }
 
+          const isPaid = !!bill.is_paid
+          if (isPaid) {
+            status_text = 'Pago neste mês'
+          }
+
           return {
             id: bill.id,
             workspace_id: bill.workspace_id,
             name: bill.name,
+            color_hex: bill.color_hex || '#3b82f6',
             type: bill.type || 'expense',
             estimated_amount: Number(bill.estimated_amount || 0),
-            due_day: bill.due_day,
-            is_active: !!bill.is_active,
-            is_reminder_active: !!bill.is_reminder_active,
+            due_day: Number(bill.due_day || 1),
+            category_id: bill.category_id,
+            preferred_bank_account_id: bill.preferred_bank_account_id,
+            category: bill.category,
+            preferred_bank_account: bill.preferred_bank_account,
+            is_active: bill.is_active !== undefined ? !!bill.is_active : true,
+            is_reminder_active: bill.is_reminder_active !== undefined ? !!bill.is_reminder_active : true,
+            reminder_days_before: bill.reminder_days_before,
+            notes: bill.notes,
             status,
             status_text,
-            is_paid: false,
+            is_paid: isPaid,
+            current_payment: bill.current_payment,
+            payments: bill.payments || [],
           }
         })
       }
@@ -837,6 +851,49 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  const createFixedBill = async (payload: any) => {
+    const res = await financialService.createFixedBill(payload)
+    await fetchDashboardData()
+    return res
+  }
+
+  const updateFixedBill = async (id: number, payload: any) => {
+    const res = await financialService.updateFixedBill(id, payload)
+    await fetchDashboardData()
+    return res
+  }
+
+  const deleteFixedBill = async (id: number) => {
+    upcomingBills.value = upcomingBills.value.filter(b => b.id !== id)
+    saveStateToStorage()
+    try {
+      await financialService.deleteFixedBill(id)
+      await fetchDashboardData()
+    } catch (e) {
+      console.warn('Falha ao excluir conta fixa na API', e)
+    }
+  }
+
+  const payFixedBill = async (
+    billId: number,
+    data?: {
+      amount?: number
+      payment_date?: string
+      bank_account_id?: number
+      credit_card_id?: number
+    }
+  ) => {
+    const res = await financialService.payFixedBill(billId, data)
+    await fetchDashboardData()
+    return res
+  }
+
+  const unpayFixedBill = async (billId: number) => {
+    const res = await financialService.unpayFixedBill(billId)
+    await fetchDashboardData()
+    return res
+  }
+
   // Load cached state on initialization
   loadStateFromStorage()
 
@@ -871,5 +928,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
     deleteBankAccount,
     deleteCreditCard,
     syncPendingQueue,
+    createFixedBill,
+    updateFixedBill,
+    deleteFixedBill,
+    payFixedBill,
+    unpayFixedBill,
   }
 })

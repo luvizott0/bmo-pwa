@@ -32,9 +32,10 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/subscriptions',
-      name: 'subscriptions',
-      component: () => import('../views/SubscriptionsView.vue'),
+      path: '/fixed-expenses',
+      alias: '/subscriptions',
+      name: 'fixed-expenses',
+      component: () => import('../views/FixedExpensesView.vue'),
       meta: { requiresAuth: true },
     },
     {
