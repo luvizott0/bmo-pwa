@@ -24,12 +24,12 @@ const navItems = [
   >
     <!-- Top Brand & Navigation -->
     <div class="space-y-8">
-      <!-- FLUX Logo -->
+      <!-- BMO Logo -->
       <div class="flex items-center gap-3 px-2">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-black text-lg shadow-sm shadow-indigo-200">
-          F
+          B
         </div>
-        <span class="font-extrabold text-xl tracking-tight text-slate-900">FLUX</span>
+        <span class="font-extrabold text-xl tracking-tight text-slate-900">BMO</span>
       </div>
 
       <!-- Nav Links -->

@@ -17,7 +17,7 @@ const dashboardStore = useDashboardStore()
 
 const mode = ref<'login' | 'register'>('login')
 const name = ref('')
-const email = ref('alex@flux.app')
+const email = ref('alex@bmo.app')
 const password = ref('password')
 const passwordConfirmation = ref('password')
 const errorMessage = ref<string | null>(null)
@@ -53,7 +53,7 @@ const handleSubmit = async () => {
     <div class="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
       <div class="flex items-center justify-between pb-4 border-b border-slate-100">
         <h3 class="text-lg font-bold text-slate-900">
-          {{ mode === 'login' ? 'Acessar Conta Flux' : 'Criar Nova Conta' }}
+          {{ mode === 'login' ? 'Acessar Conta BMO' : 'Criar Nova Conta' }}
         </h3>
         <button
           type="button"
@@ -90,7 +90,7 @@ const handleSubmit = async () => {
             v-model="email"
             type="email"
             required
-            placeholder="alex@flux.app"
+            placeholder="alex@bmo.app"
             class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
           />
         </div>

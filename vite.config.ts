@@ -27,8 +27,8 @@ export default defineConfig({
         id: '/',
         start_url: '/',
         scope: '/',
-        name: 'Flux - House & Finance Manager',
-        short_name: 'Flux',
+        name: 'BMO - House & Finance Manager',
+        short_name: 'BMO',
         description: 'Gerenciador financeiro pessoal, familiar e residencial com suporte offline',
         theme_color: '#4f46e5',
         background_color: '#f8fafc',
@@ -74,7 +74,7 @@ export default defineConfig({
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'flux-api-cache',
+              cacheName: 'bmo-api-cache',
               cacheableResponse: {
                 statuses: [0, 200],
               },

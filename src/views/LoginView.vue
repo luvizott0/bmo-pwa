@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Lock, Mail, Eye, EyeOff, AlertCircle, RefreshCw, Sparkles, ArrowRight } from 'lucide-vue-next'
@@ -9,7 +9,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
 
-const email = ref('alex@flux.app')
+const email = ref('alex@bmo.app')
 const password = ref('password')
 const showPassword = ref(false)
 const isSubmitting = ref(false)
@@ -38,7 +38,7 @@ const handleLogin = async () => {
 }
 
 const fillDemoCredentials = async () => {
-  email.value = 'alex@flux.app'
+  email.value = 'alex@bmo.app'
   password.value = 'password'
   await handleLogin()
 }
@@ -49,7 +49,7 @@ const fillDemoCredentials = async () => {
     <!-- Brand Header -->
     <div class="text-center mb-8">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white font-black text-2xl shadow-lg shadow-indigo-600/25 mb-4">
-        F
+        B
       </div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
         Acesse sua conta
