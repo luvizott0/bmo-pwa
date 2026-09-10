@@ -39,6 +39,13 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/inventory',
+      alias: '/estoque',
+      name: 'inventory',
+      component: () => import('../views/InventoryView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/analytics',
       name: 'analytics',
       component: DashboardView,

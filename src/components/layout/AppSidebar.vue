@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LayoutDashboard, Landmark, BarChart3, Settings, ReceiptText, CalendarCheck2 } from 'lucide-vue-next'
+import { LayoutDashboard, Landmark, BarChart3, Settings, ReceiptText, CalendarCheck2, Package } from 'lucide-vue-next'
 import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
@@ -13,6 +13,7 @@ const navItems = [
   { name: 'Extrato', path: '/transactions', icon: ReceiptText },
   { name: 'Contas Bancárias', path: '/accounts', icon: Landmark },
   { name: 'Despesas Fixas', path: '/fixed-expenses', icon: CalendarCheck2 },
+  { name: 'Estoque', path: '/inventory', icon: Package },
   { name: 'Relatórios', path: '/analytics', icon: BarChart3, badge: 'EM BREVE' },
 ]
 </script>
