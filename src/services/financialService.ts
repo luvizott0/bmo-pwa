@@ -178,7 +178,24 @@ export const financialService = {
     return api.post('/subscriptions', data)
   },
 
-  updateSubscription: async (id: number, data: any) => {
+  updateSubscription: async (id: number, data: {
+    service_name?: string
+    color_hex?: string | null
+    total_amount?: number
+    billing_day?: number
+    credit_card_id?: number | null
+    bank_account_id?: number | null
+    category_id?: number | null
+    notes?: string | null
+    is_active?: boolean
+    members?: Array<{
+      id?: number
+      name: string
+      installment_amount: number
+      contact?: string | null
+      user_id?: number | null
+    }>
+  }) => {
     return api.put(`/subscriptions/${id}`, data)
   },
 

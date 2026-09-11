@@ -10,6 +10,7 @@ import {
   Sparkles,
   UserCheck,
   RotateCcw,
+  Pencil,
 } from 'lucide-vue-next'
 import { formatCurrency } from '@/utils/formatters'
 import type { Subscription, SubscriptionMember } from '@/types/finance'
@@ -22,6 +23,7 @@ const emit = defineEmits<{
   (e: 'toggleMember', subId: number, memberId: number): void
   (e: 'toggleSubscription', subId: number): void
   (e: 'delete', subId: number): void
+  (e: 'edit', subscription: Subscription): void
 }>()
 
 const isAllPaid = computed(() => {
@@ -95,10 +97,18 @@ const perPersonAmount = computed(() => {
 
         <!-- Right: Amount & Actions -->
         <div class="text-right shrink-0 flex flex-col items-end">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
             <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               {{ formatCurrency(subscription.total_amount) }}
             </span>
+            <button
+              type="button"
+              @click="emit('edit', subscription)"
+              title="Editar assinatura"
+              class="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+            >
+              <Pencil class="w-4 h-4" />
+            </button>
             <button
               type="button"
               @click="emit('delete', subscription.id)"

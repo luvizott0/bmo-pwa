@@ -40,6 +40,7 @@ const isHistoryModalOpen = ref(false)
 
 const selectedBillForPay = ref<FixedBill | null>(null)
 const selectedBillForHistory = ref<FixedBill | null>(null)
+const selectedSubscriptionToEdit = ref<Subscription | null>(null)
 
 // Computed metrics
 const billsCount = computed(() => store.upcomingBills.length)
@@ -127,6 +128,16 @@ const handleDeleteSub = async (subId: number) => {
   }
 }
 
+const handleEditSub = (sub: Subscription) => {
+  selectedSubscriptionToEdit.value = sub
+  isSubModalOpen.value = true
+}
+
+const openCreateSub = () => {
+  selectedSubscriptionToEdit.value = null
+  isSubModalOpen.value = true
+}
+
 const handleRefresh = async () => {
   await store.fetchDashboardData()
 }
@@ -169,7 +180,7 @@ const handleRefresh = async () => {
 
         <button
           type="button"
-          @click="isSubModalOpen = true"
+          @click="openCreateSub"
           class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-600/20 transition cursor-pointer"
         >
           <Users class="w-4 h-4" />
@@ -347,7 +358,7 @@ const handleRefresh = async () => {
 
         <button
           type="button"
-          @click="isSubModalOpen = true"
+          @click="openCreateSub"
           class="text-xs font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer hidden sm:inline-flex items-center gap-1"
         >
           <Plus class="w-3.5 h-3.5" />
@@ -362,13 +373,14 @@ const handleRefresh = async () => {
           :subscription="sub"
           @toggle-member="handleToggleSubMember"
           @toggle-subscription="handleToggleSubscription"
+          @edit="handleEditSub"
           @delete="handleDeleteSub"
         />
 
         <!-- Dashed Add Card -->
         <button
           type="button"
-          @click="isSubModalOpen = true"
+          @click="openCreateSub"
           class="border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/20 rounded-[26px] p-8 flex flex-col items-center justify-center gap-3 min-h-[200px] transition-all duration-200 cursor-pointer group text-center"
         >
           <div class="w-12 h-12 rounded-full border border-slate-200 group-hover:border-indigo-400 group-hover:bg-white flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition shadow-2xs">
@@ -376,7 +388,7 @@ const handleRefresh = async () => {
           </div>
           <div>
             <span class="text-sm font-bold text-slate-800 group-hover:text-indigo-600 block">
-              Nova Assinatura
+               Nova Assinatura
             </span>
             <span class="text-xs text-slate-400 font-medium mt-0.5 block">
               Individual ou rateio em família
@@ -409,11 +421,13 @@ const handleRefresh = async () => {
       @close="isHistoryModalOpen = false"
     />
 
-    <!-- Create Subscription Modal -->
+    <!-- Create / Edit Subscription Modal -->
     <SubscriptionModal
       :is-open="isSubModalOpen"
-      @close="isSubModalOpen = false"
+      :subscription-to-edit="selectedSubscriptionToEdit"
+      @close="isSubModalOpen = false; selectedSubscriptionToEdit = null"
       @created="handleRefresh"
+      @updated="handleRefresh"
     />
   </div>
 </template>

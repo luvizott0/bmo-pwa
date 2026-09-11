@@ -12,18 +12,22 @@ import {
   Check,
 } from 'lucide-vue-next'
 import { useDashboardStore } from '@/stores/dashboard'
+import type { Subscription } from '@/types/finance'
 import { formatCurrency } from '@/utils/formatters'
 
 const props = defineProps<{
   isOpen: boolean
+  subscriptionToEdit?: Subscription | null
 }>()
 
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'created'): void
+  (e: 'updated'): void
 }>()
 
 const store = useDashboardStore()
+const isEditing = computed(() => !!props.subscriptionToEdit)
 
 const servicePresets = [
   { name: 'Netflix', icon: 'NET', color: '#141414', category: 'Entretenimento', defaultAmount: 59.90 },
@@ -83,7 +87,7 @@ const applyPreset = (preset: typeof servicePresets[0]) => {
   recalculateMemberSplits()
 }
 
-// Reset form
+// Reset form to defaults
 function resetForm() {
   serviceName.value = ''
   selectedColor.value = '#6366f1'
@@ -111,11 +115,61 @@ function resetForm() {
   ]
 }
 
+function populateForm() {
+  if (props.subscriptionToEdit) {
+    const sub = props.subscriptionToEdit
+    serviceName.value = sub.service_name
+    selectedColor.value = sub.color_hex || sub.icon_bg || '#6366f1'
+    totalAmount.value = sub.total_amount
+    billingDay.value = sub.billing_day || 10
+    categoryName.value = sub.category_name || 'Entretenimento'
+    notes.value = sub.notes || ''
+    errorMessage.value = null
+
+    if (sub.credit_card_id) {
+      selectedPaymentTarget.value = `card_${sub.credit_card_id}`
+    } else if (sub.bank_account_id) {
+      selectedPaymentTarget.value = `account_${sub.bank_account_id}`
+    } else {
+      selectedPaymentTarget.value = ''
+    }
+
+    if (sub.members && sub.members.length > 0) {
+      isFamilyPlan.value = true
+      members.value = sub.members.map((m) => ({
+        id: String(m.id),
+        name: m.name,
+        contact: m.contact || '',
+        installment_amount: m.installment_amount,
+      }))
+    } else {
+      isFamilyPlan.value = false
+      const userName = store.summary.user_name || 'Você'
+      members.value = [
+        { id: '1', name: userName, contact: '', installment_amount: 0 },
+        { id: '2', name: 'Amigo / Familiar', contact: '', installment_amount: 0 },
+      ]
+    }
+  } else {
+    resetForm()
+  }
+}
+
 watch(
   () => props.isOpen,
   (open) => {
     if (open) {
-      resetForm()
+      populateForm()
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.subscriptionToEdit,
+  () => {
+    if (props.isOpen) {
+      populateForm()
     }
   }
 )
@@ -202,19 +256,31 @@ const handleSubmit = async () => {
     }
 
     if (isFamilyPlan.value && members.value.length > 0) {
-      payload.members = members.value.map((m) => ({
-        name: m.name.trim() || 'Participante',
-        installment_amount: Number(m.installment_amount) || Math.round((Number(totalAmount.value) / members.value.length) * 100) / 100,
-        contact: m.contact.trim() || null,
-      }))
+      payload.members = members.value.map((m) => {
+        const isDbId = m.id && !m.id.includes('-') && Number(m.id) < 1000000000000
+        return {
+          ...(isDbId ? { id: Number(m.id) } : {}),
+          name: m.name.trim() || 'Participante',
+          installment_amount: Number(m.installment_amount) || Math.round((Number(totalAmount.value) / members.value.length) * 100) / 100,
+          contact: m.contact.trim() || null,
+        }
+      })
+    } else if (isEditing.value && !isFamilyPlan.value) {
+      payload.members = []
     }
 
-    await store.createSubscription(payload)
-    emit('created')
+    if (isEditing.value && props.subscriptionToEdit) {
+      await store.updateSubscription(props.subscriptionToEdit.id, payload)
+      emit('updated')
+    } else {
+      await store.createSubscription(payload)
+      emit('created')
+    }
+
     emit('close')
   } catch (err: any) {
-    console.error('Erro ao criar assinatura:', err)
-    errorMessage.value = err.response?.data?.message || 'Falha ao cadastrar a assinatura. Verifique os dados.'
+    console.error('Erro ao salvar assinatura:', err)
+    errorMessage.value = err.response?.data?.message || 'Falha ao salvar a assinatura. Verifique os dados.'
   } finally {
     isSubmitting.value = false
   }
@@ -232,10 +298,10 @@ const handleSubmit = async () => {
       <div class="flex items-center justify-between pb-4 border-b border-slate-100">
         <div>
           <h3 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
-            Nova Assinatura
+            {{ isEditing ? 'Editar Assinatura' : 'Nova Assinatura' }}
           </h3>
           <p class="text-xs text-slate-400 font-medium mt-0.5">
-            Cadastre um plano individual ou compartilhe com familiares
+            {{ isEditing ? 'Atualize o valor, meio de cobrança ou participantes' : 'Cadastre um plano individual ou compartilhe com familiares' }}
           </p>
         </div>
         <button
@@ -248,7 +314,7 @@ const handleSubmit = async () => {
       </div>
 
       <!-- Quick Presets -->
-      <div class="mt-4">
+      <div v-if="!isEditing" class="mt-4">
         <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
           Sugestões Populares
         </label>
@@ -504,7 +570,7 @@ const handleSubmit = async () => {
             :disabled="isSubmitting"
             class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-600/20 transition cursor-pointer disabled:opacity-50"
           >
-            {{ isSubmitting ? 'Salvando...' : 'Salvar Assinatura' }}
+            {{ isSubmitting ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Assinatura') }}
           </button>
         </div>
       </form>

@@ -959,6 +959,28 @@ export const useDashboardStore = defineStore('dashboard', () => {
     return res
   }
 
+  const updateSubscription = async (id: number, payload: {
+    service_name: string
+    color_hex?: string | null
+    total_amount: number
+    billing_day: number
+    credit_card_id?: number | null
+    bank_account_id?: number | null
+    category_id?: number | null
+    notes?: string | null
+    is_active?: boolean
+    members?: Array<{
+      id?: number
+      name: string
+      installment_amount: number
+      contact?: string | null
+    }>
+  }) => {
+    const res = await financialService.updateSubscription(id, payload)
+    await fetchDashboardData()
+    return res
+  }
+
   const deleteSubscription = async (id: number) => {
     familySubscriptions.value = familySubscriptions.value.filter(s => s.id !== id)
     saveStateToStorage()
@@ -1109,6 +1131,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     fetchDashboardData,
     fetchFullTransactions,
     createSubscription,
+    updateSubscription,
     deleteSubscription,
     toggleMemberPayment,
     toggleSubscriptionPayment,
