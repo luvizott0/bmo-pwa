@@ -1,0 +1,20 @@
+name: Deploy BMO PWA
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy PWA to Homelab
+    runs-on: self-hosted
+    steps:
+      - name: Deploy PWA
+        run: |
+          cd /home/calebe/homelab/bmo
+          echo "==> Atualizando código do bmo-pwa..."
+          git -C bmo-pwa pull origin main
+          echo "==> Reconstruindo container bmo-pwa..."
+          docker compose up -d --build --no-deps bmo-pwa
+          echo "==> Deploy concluído com sucesso!"
