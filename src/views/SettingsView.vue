@@ -12,9 +12,16 @@ import {
   RefreshCw,
   Landmark,
   Check,
+  Boxes,
+  Copy,
+  Users,
+  Share2,
+  Unlink,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
+import { inventoryService } from '@/services/inventoryService'
+import type { StockShareStatus } from '@/types/inventory'
 import { formatCurrency } from '@/utils/formatters'
 
 const router = useRouter()
@@ -24,10 +31,119 @@ const dashboardStore = useDashboardStore()
 const isSettingPrimary = ref<number | null>(null)
 const primarySuccessMessage = ref<string | null>(null)
 
-onMounted(async () => {
-  if (dashboardStore.bankAccounts.length === 0) {
-    await dashboardStore.fetchDashboardData()
+// Stock Sharing State
+const stockShareStatus = ref<StockShareStatus | null>(null)
+const isLoadingStockStatus = ref(false)
+const isGeneratingInvite = ref(false)
+const isRevokingInvite = ref(false)
+const isLeavingStock = ref(false)
+const showLeaveConfirm = ref(false)
+const stockCopied = ref(false)
+const stockErrorMessage = ref<string | null>(null)
+const stockSuccessMessage = ref<string | null>(null)
+
+const loadStockShareStatus = async () => {
+  isLoadingStockStatus.value = true
+  try {
+    const data = await inventoryService.getStockShareStatus()
+    stockShareStatus.value = data
+  } catch (err: any) {
+    console.error('Erro ao carregar status do compartilhamento de estoque:', err)
+  } finally {
+    isLoadingStockStatus.value = false
   }
+}
+
+const handleGenerateInvite = async () => {
+  isGeneratingInvite.value = true
+  stockErrorMessage.value = null
+  stockSuccessMessage.value = null
+  try {
+    await inventoryService.createStockShareInvite()
+    await loadStockShareStatus()
+    stockSuccessMessage.value = 'Link de uso único gerado com sucesso! Copie e envie para a outra pessoa.'
+    setTimeout(() => {
+      stockSuccessMessage.value = null
+    }, 5000)
+  } catch (err: any) {
+    stockErrorMessage.value = err?.data?.message || err?.message || 'Erro ao gerar link de compartilhamento.'
+  } finally {
+    isGeneratingInvite.value = false
+  }
+}
+
+const handleRevokeInvite = async () => {
+  isRevokingInvite.value = true
+  stockErrorMessage.value = null
+  stockSuccessMessage.value = null
+  try {
+    await inventoryService.revokeStockShareInvite()
+    await loadStockShareStatus()
+    stockSuccessMessage.value = 'Link de convite revogado.'
+    setTimeout(() => {
+      stockSuccessMessage.value = null
+    }, 4000)
+  } catch (err: any) {
+    stockErrorMessage.value = err?.data?.message || err?.message || 'Erro ao revogar convite.'
+  } finally {
+    isRevokingInvite.value = false
+  }
+}
+
+const handleCopyLink = async () => {
+  if (!stockShareStatus.value?.pending_invitation?.token) return
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const fullUrl = `${origin}/invites/stock/${stockShareStatus.value.pending_invitation.token}`
+
+  try {
+    await navigator.clipboard.writeText(fullUrl)
+    stockCopied.value = true
+    setTimeout(() => {
+      stockCopied.value = false
+    }, 3000)
+  } catch {
+    const input = document.createElement('input')
+    input.value = fullUrl
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+    stockCopied.value = true
+    setTimeout(() => {
+      stockCopied.value = false
+    }, 3000)
+  }
+}
+
+const handleLeaveStockShare = async (memberUserId?: number) => {
+  isLeavingStock.value = true
+  stockErrorMessage.value = null
+  stockSuccessMessage.value = null
+  try {
+    const res = await inventoryService.leaveStockShare(memberUserId)
+    showLeaveConfirm.value = false
+    await loadStockShareStatus()
+    stockSuccessMessage.value = res.message || 'Desconectado do estoque compartilhado.'
+    setTimeout(() => {
+      stockSuccessMessage.value = null
+    }, 4000)
+  } catch (err: any) {
+    stockErrorMessage.value = err?.data?.message || err?.message || 'Erro ao desconectar do estoque compartilhado.'
+  } finally {
+    isLeavingStock.value = false
+  }
+}
+
+const getFullInviteUrl = (token: string) => {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  return `${origin}/invites/stock/${token}`
+}
+
+onMounted(async () => {
+  await Promise.all([
+    dashboardStore.bankAccounts.length === 0 ? dashboardStore.fetchDashboardData() : Promise.resolve(),
+    loadStockShareStatus(),
+  ])
 })
 
 const handleSetPrimary = async (accountId: number) => {
@@ -274,6 +390,233 @@ const handleLogout = async () => {
         >
           + Cadastrar Conta Bancária
         </button>
+      </div>
+    </div>
+
+    <!-- Stock Sharing Section -->
+    <div class="rounded-[26px] bg-white p-6 sm:p-7 border border-slate-100 shadow-sm space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+            <Boxes class="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                Compartilhamento de Estoque
+              </h3>
+              <span
+                v-if="stockShareStatus?.is_shared"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700"
+              >
+                <Check class="w-3 h-3 stroke-[3]" />
+                Compartilhado
+              </span>
+              <span
+                v-else
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600"
+              >
+                Individual
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 font-medium mt-0.5">
+              Compartilhe a despensa e o controle de itens da casa com outro usuário através de link de uso único.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          @click="router.push('/inventory')"
+          class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition cursor-pointer hidden sm:inline-block"
+        >
+          Acessar Estoque →
+        </button>
+      </div>
+
+      <!-- Success message banner -->
+      <div
+        v-if="stockSuccessMessage"
+        class="flex items-center gap-2.5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold animate-in fade-in duration-200"
+      >
+        <CheckCircle2 class="w-5 h-5 text-emerald-600 shrink-0" />
+        <span>{{ stockSuccessMessage }}</span>
+      </div>
+
+      <!-- Error message banner -->
+      <div
+        v-if="stockErrorMessage"
+        class="flex items-center gap-2.5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm font-semibold animate-in fade-in duration-200"
+      >
+        <AlertCircle class="w-5 h-5 text-rose-600 shrink-0" />
+        <span>{{ stockErrorMessage }}</span>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="isLoadingStockStatus" class="py-6 flex items-center justify-center text-slate-400 gap-2 text-xs font-semibold">
+        <RefreshCw class="w-4 h-4 animate-spin text-indigo-600" />
+        <span>Carregando informações de compartilhamento...</span>
+      </div>
+
+      <div v-else class="space-y-5">
+        <!-- Connected Members List (if shared) -->
+        <div v-if="stockShareStatus?.is_shared" class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <span class="flex items-center gap-1.5">
+              <Users class="w-4 h-4 text-slate-500" />
+              Usuários com acesso ao mesmo estoque
+            </span>
+            <span class="text-slate-400 font-medium lowercase">
+              {{ stockShareStatus.members.length }} conectado(s)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <div
+              v-for="member in stockShareStatus.members"
+              :key="member.id"
+              class="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200/80 shadow-2xs"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs shrink-0">
+                  {{ member.name.charAt(0).toUpperCase() }}
+                </div>
+                <div class="min-w-0 truncate">
+                  <p class="text-xs font-bold text-slate-900 truncate">
+                    {{ member.name }}
+                    <span v-if="member.id === authStore.user?.id" class="text-slate-400 font-normal">(você)</span>
+                  </p>
+                  <p class="text-[11px] text-slate-400 truncate">{{ member.email }}</p>
+                </div>
+              </div>
+
+              <span
+                v-if="member.is_owner"
+                class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200/50 shrink-0"
+              >
+                Proprietário
+              </span>
+              <button
+                v-else-if="stockShareStatus.is_owner"
+                type="button"
+                @click="handleLeaveStockShare(member.id)"
+                :disabled="isLeavingStock"
+                class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Invitation Card (if generated) -->
+        <div
+          v-if="stockShareStatus?.pending_invitation"
+          class="p-4 sm:p-5 rounded-2xl bg-purple-50/60 border border-purple-200/80 space-y-3"
+        >
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-600 text-white shadow-2xs">
+                Link Ativo
+              </span>
+              <span class="text-xs font-bold text-purple-950">
+                Link de Compartilhamento de Uso Único
+              </span>
+            </div>
+            <span class="text-[11px] font-semibold text-purple-700">
+              Válido por 48 horas ou até ser aceito
+            </span>
+          </div>
+
+          <!-- Link input and copy button -->
+          <div class="flex flex-col sm:flex-row items-stretch gap-2">
+            <input
+              type="text"
+              readonly
+              :value="getFullInviteUrl(stockShareStatus.pending_invitation.token)"
+              class="w-full px-3.5 py-2 rounded-xl bg-white border border-purple-200 text-xs font-mono text-slate-700 select-all focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+            <div class="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                @click="handleCopyLink"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs font-bold transition shadow-sm shadow-purple-600/20 cursor-pointer"
+              >
+                <Check v-if="stockCopied" class="w-3.5 h-3.5 stroke-[3]" />
+                <Copy v-else class="w-3.5 h-3.5" />
+                <span>{{ stockCopied ? 'Copiado!' : 'Copiar Link' }}</span>
+              </button>
+              <button
+                type="button"
+                @click="handleRevokeInvite"
+                :disabled="isRevokingInvite"
+                class="px-3 py-2 rounded-xl border border-purple-200 hover:bg-purple-100/60 text-purple-700 text-xs font-bold transition cursor-pointer disabled:opacity-50"
+              >
+                {{ isRevokingInvite ? 'Cancelando...' : 'Cancelar Link' }}
+              </button>
+            </div>
+          </div>
+          <p class="text-[11px] text-purple-700 font-medium">
+            💡 Envie este link para outra pessoa. Assim que ela acessar e aceitar, vocês passarão a ter o mesmo estoque automaticamente.
+          </p>
+        </div>
+
+        <!-- Action Buttons depending on state -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          <div>
+            <p v-if="!stockShareStatus?.is_shared && !stockShareStatus?.pending_invitation" class="text-xs text-slate-400 font-medium">
+              Ao gerar o link, ele poderá ser usado apenas uma vez para vincular outro usuário ao seu estoque.
+            </p>
+            <p v-else-if="stockShareStatus?.is_shared" class="text-xs text-slate-400 font-medium">
+              Qualquer item adicionado, atualizado ou consumido no estoque é refletido em tempo real para todos os membros conectados.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Disconnect button if connected as member -->
+            <template v-if="stockShareStatus?.is_shared && !stockShareStatus?.is_owner">
+              <button
+                v-if="!showLeaveConfirm"
+                type="button"
+                @click="showLeaveConfirm = true"
+                class="text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Unlink class="w-3.5 h-3.5" />
+                <span>Desconectar Estoque</span>
+              </button>
+              <template v-else>
+                <button
+                  type="button"
+                  @click="showLeaveConfirm = false"
+                  class="text-xs font-bold text-slate-500 hover:bg-slate-100 px-3 py-2 rounded-xl transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  @click="handleLeaveStockShare()"
+                  :disabled="isLeavingStock"
+                  class="text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 px-3.5 py-2 rounded-xl transition cursor-pointer disabled:opacity-50"
+                >
+                  {{ isLeavingStock ? 'Saindo...' : 'Confirmar Saída' }}
+                </button>
+              </template>
+            </template>
+
+            <!-- Generate Invite Button if owner -->
+            <button
+              v-if="stockShareStatus?.is_owner && !stockShareStatus?.pending_invitation"
+              type="button"
+              @click="handleGenerateInvite"
+              :disabled="isGeneratingInvite"
+              class="w-full sm:w-auto flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs sm:text-sm font-bold shadow-sm shadow-purple-600/20 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <RefreshCw v-if="isGeneratingInvite" class="w-4 h-4 animate-spin" />
+              <Share2 v-else class="w-4 h-4" />
+              <span>{{ stockShareStatus?.is_shared ? 'Convidar Mais Alguém' : 'Gerar Link de Compartilhamento' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -1,37 +1,71 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { Lock, Mail, Eye, EyeOff, AlertCircle, RefreshCw, Sparkles, ArrowRight } from 'lucide-vue-next'
+import { useRouter, useRoute } from 'vue-router'
+import { Lock, Mail, Eye, EyeOff, AlertCircle, RefreshCw, User, ArrowRight } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
+import { financialService } from '@/services/financialService'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
 
+const isRegisterMode = ref(false)
+const name = ref('')
 const email = ref('')
 const password = ref('')
+const passwordConfirmation = ref('')
 const showPassword = ref(false)
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
 
-const handleLogin = async () => {
+const handleSubmit = async () => {
   errorMessage.value = null
   if (!email.value || !password.value) {
-    errorMessage.value = 'Preencha o e-mail e a senha para continuar.'
+    errorMessage.value = 'Preencha todos os campos obrigatórios.'
     return
+  }
+
+  if (isRegisterMode.value) {
+    if (!name.value) {
+      errorMessage.value = 'Informe o seu nome completo.'
+      return
+    }
+    if (password.value !== passwordConfirmation.value) {
+      errorMessage.value = 'A confirmação de senha não coincide.'
+      return
+    }
   }
 
   isSubmitting.value = true
   try {
-    await authStore.login(email.value, password.value)
-    await dashboardStore.fetchDashboardData()
-    router.push('/')
+    if (isRegisterMode.value) {
+      const response: any = await financialService.register({
+        name: name.value,
+        email: email.value,
+        password: password.value,
+        password_confirmation: passwordConfirmation.value,
+      })
+      authStore.setAuth(response.token, response.user, response.workspaces)
+    } else {
+      await authStore.login(email.value, password.value)
+    }
+
+    try {
+      await dashboardStore.fetchDashboardData()
+    } catch {
+      // Ignore dashboard fetch error on brand new accounts
+    }
+
+    const redirect = (route.query.redirect as string) || '/'
+    router.push(redirect)
   } catch (err: any) {
     errorMessage.value =
-      err?.message ||
       err?.data?.message ||
-      'Credenciais inválidas. Verifique seu e-mail e senha.'
+      (err?.data?.errors ? Object.values(err.data.errors).flat().join(' ') : null) ||
+      err?.message ||
+      'Falha na autenticação. Verifique os dados informados.'
   } finally {
     isSubmitting.value = false
   }
@@ -46,14 +80,14 @@ const handleLogin = async () => {
         B
       </div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-        Acesse sua conta
+        {{ isRegisterMode ? 'Crie sua conta' : 'Acesse sua conta' }}
       </h1>
       <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-        Gerenciador financeiro inteligente para você e sua família.
+        {{ isRegisterMode ? 'Cadastre-se para gerenciar finanças e estoque compartilhado.' : 'Gerenciador inteligente para você e sua família.' }}
       </p>
     </div>
 
-    <!-- Login Card -->
+    <!-- Auth Card -->
     <div class="rounded-[28px] bg-white p-6 sm:p-8 border border-slate-100 shadow-xl shadow-slate-900/5">
       <!-- Error Alert -->
       <div
@@ -64,7 +98,26 @@ const handleLogin = async () => {
         <span class="flex-1">{{ errorMessage }}</span>
       </div>
 
-      <form @submit.prevent="handleLogin" class="space-y-4">
+      <form @submit.prevent="handleSubmit" class="space-y-4">
+        <!-- Name Input (Register mode only) -->
+        <div v-if="isRegisterMode">
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+            Seu Nome
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <User class="w-4 h-4" />
+            </div>
+            <input
+              v-model="name"
+              type="text"
+              required
+              placeholder="Ex: Maria da Silva"
+              class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+            />
+          </div>
+        </div>
+
         <!-- Email Input -->
         <div>
           <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
@@ -98,8 +151,7 @@ const handleLogin = async () => {
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
               required
-              autocomplete="current-password"
-              placeholder="••••••••"
+              :placeholder="isRegisterMode ? 'Mínimo 8 caracteres' : '••••••••'"
               class="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
             />
             <button
@@ -113,6 +165,25 @@ const handleLogin = async () => {
           </div>
         </div>
 
+        <!-- Confirm Password Input (Register mode only) -->
+        <div v-if="isRegisterMode">
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+            Confirmar Senha
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <Lock class="w-4 h-4" />
+            </div>
+            <input
+              v-model="passwordConfirmation"
+              type="password"
+              required
+              placeholder="••••••••"
+              class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+            />
+          </div>
+        </div>
+
         <!-- Submit Button -->
         <button
           type="submit"
@@ -121,12 +192,22 @@ const handleLogin = async () => {
         >
           <RefreshCw v-if="isSubmitting" class="w-4 h-4 animate-spin" />
           <span v-else class="flex items-center gap-2">
-            Entrar na Conta
+            {{ isRegisterMode ? 'Criar Conta' : 'Entrar na Conta' }}
             <ArrowRight class="w-4 h-4" />
           </span>
         </button>
       </form>
 
+      <!-- Toggle between Login and Register -->
+      <div class="mt-5 text-center pt-4 border-t border-slate-100">
+        <button
+          type="button"
+          @click="isRegisterMode = !isRegisterMode; errorMessage = null"
+          class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
+        >
+          {{ isRegisterMode ? 'Já possui uma conta? Faça login aqui' : 'Ainda não tem conta? Crie sua conta grátis' }}
+        </button>
+      </div>
     </div>
 
     <!-- Security footnote -->

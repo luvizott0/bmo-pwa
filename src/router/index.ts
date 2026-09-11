@@ -57,6 +57,12 @@ const router = createRouter({
       component: SettingsView,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/invites/stock/:token',
+      name: 'stock-invite',
+      component: () => import('../views/StockInviteView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
@@ -65,9 +71,10 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
 
   if (requiresAuth && !token) {
-    next({ name: 'login' })
+    next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (to.name === 'login' && token) {
-    next({ name: 'dashboard' })
+    const redirect = (to.query.redirect as string) || '/'
+    next(redirect)
   } else {
     next()
   }

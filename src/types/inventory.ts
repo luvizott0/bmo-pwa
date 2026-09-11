@@ -69,3 +69,37 @@ export interface InventoryResponse {
   data: InventoryItem[]
   meta: InventoryMeta
 }
+
+export interface StockMember {
+  id: number
+  name: string
+  email: string
+  is_owner: boolean
+}
+
+export interface StockShareStatus {
+  is_shared: boolean
+  is_owner: boolean
+  owner: {
+    id?: number
+    name?: string
+    email?: string
+  }
+  members: StockMember[]
+  pending_invitation: {
+    token: string
+    expires_at: string
+    created_at: string
+  } | null
+  items_count: number
+}
+
+export interface StockInviteDetails {
+  is_valid: boolean
+  inviter_name?: string
+  workspace_name?: string
+  items_count?: number
+  expires_at?: string
+  message?: string
+}
+

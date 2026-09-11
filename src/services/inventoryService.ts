@@ -3,6 +3,8 @@ import type {
   InventoryItem,
   InventoryResponse,
   StockCategory,
+  StockShareStatus,
+  StockInviteDetails,
 } from '@/types/inventory'
 
 export const inventoryService = {
@@ -83,5 +85,30 @@ export const inventoryService = {
     }
   ): Promise<{ data: InventoryItem }> => {
     return api.post(`/inventory-items/${id}/purchases`, data)
+  },
+
+  // Stock Sharing
+  getStockShareStatus: async (): Promise<StockShareStatus> => {
+    return api.get('/stock-shares/status')
+  },
+
+  createStockShareInvite: async (): Promise<{ message: string; token: string; expires_at: string }> => {
+    return api.post('/stock-shares/invite')
+  },
+
+  revokeStockShareInvite: async (): Promise<{ message: string }> => {
+    return api.delete('/stock-shares/invite')
+  },
+
+  getStockInviteDetails: async (token: string): Promise<StockInviteDetails> => {
+    return api.get(`/stock-shares/invitations/${token}`)
+  },
+
+  acceptStockInvite: async (token: string): Promise<{ message: string }> => {
+    return api.post(`/stock-shares/invitations/${token}/accept`)
+  },
+
+  leaveStockShare: async (memberUserId?: number): Promise<{ message: string }> => {
+    return api.post('/stock-shares/leave', memberUserId ? { member_user_id: memberUserId } : {})
   },
 }
