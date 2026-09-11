@@ -9,6 +9,7 @@ import {
   Calendar,
   Sparkles,
   UserCheck,
+  RotateCcw,
 } from 'lucide-vue-next'
 import { formatCurrency } from '@/utils/formatters'
 import type { Subscription, SubscriptionMember } from '@/types/finance'
@@ -19,6 +20,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'toggleMember', subId: number, memberId: number): void
+  (e: 'toggleSubscription', subId: number): void
   (e: 'delete', subId: number): void
 }>()
 
@@ -215,16 +217,56 @@ const perPersonAmount = computed(() => {
         </div>
       </div>
 
-      <!-- Solo / Individual Plan Bottom Banner -->
-      <div v-else class="mt-6 pt-5 border-t border-slate-100">
-        <div class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div class="flex items-center gap-2.5 text-xs text-slate-500 font-semibold">
-            <Sparkles class="w-4 h-4 text-indigo-600" />
-            <span>Plano individual • Sem rateio</span>
+      <!-- Solo / Individual Plan Bottom Banner & Pay Action -->
+      <div v-else class="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Status Box -->
+        <div
+          v-if="subscription.is_paid"
+          class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-100/90 text-emerald-800 text-xs font-bold"
+        >
+          <div class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-2xs">
+            <Check class="w-3.5 h-3.5 stroke-[3]" />
           </div>
-          <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-            Ativo
-          </span>
+          <div>
+            <span>Pago neste ciclo</span>
+            <span class="text-emerald-600/90 font-medium ml-1">
+              (Individual)
+            </span>
+          </div>
+        </div>
+
+        <div
+          v-else
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 text-xs font-semibold"
+        >
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500" />
+          <span>Aguardando pagamento • Individual</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+          <!-- Unpay button (if paid) -->
+          <button
+            v-if="subscription.is_paid"
+            type="button"
+            @click="emit('toggleSubscription', subscription.id)"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-amber-700 hover:bg-amber-50 border border-slate-200/80 transition cursor-pointer"
+            title="Desmarcar como paga e reverter saldo"
+          >
+            <RotateCcw class="w-3.5 h-3.5" />
+            <span>Desmarcar</span>
+          </button>
+
+          <!-- Pay Button (if pending) -->
+          <button
+            v-else
+            type="button"
+            @click="emit('toggleSubscription', subscription.id)"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs shadow-indigo-600/20 transition cursor-pointer"
+          >
+            <Check class="w-3.5 h-3.5 stroke-[3]" />
+            <span>Marcar como Paga</span>
+          </button>
         </div>
       </div>
     </div>

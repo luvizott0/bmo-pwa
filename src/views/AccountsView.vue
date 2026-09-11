@@ -136,9 +136,17 @@ const getStatementDueDateText = (dueDay: number) => {
               <Landmark class="w-5 h-5 stroke-[2.2]" />
             </div>
 
-            <span class="text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-md bg-blue-50 text-blue-600">
-              CONTA BANCÁRIA
-            </span>
+            <div class="flex items-center gap-1.5">
+              <span
+                v-if="acc.is_primary"
+                class="text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200"
+              >
+                ★ PRINCIPAL
+              </span>
+              <span class="text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-md bg-blue-50 text-blue-600">
+                CONTA BANCÁRIA
+              </span>
+            </div>
           </div>
 
           <!-- Account Name & Current Balance -->
@@ -154,7 +162,7 @@ const getStatementDueDateText = (dueDay: number) => {
         </div>
 
         <!-- Progress Bar: Limit Used -->
-        <div class="mt-6 pt-4 border-t border-slate-50">
+        <div class="mt-6 pt-4 border-t border-slate-50 space-y-2">
           <div class="flex items-center justify-between text-xs mb-1.5">
             <span class="text-[10px] font-extrabold tracking-wider uppercase text-slate-400">
               LIMITE UTILIZADO
@@ -169,6 +177,15 @@ const getStatementDueDateText = (dueDay: number) => {
               :style="{ width: `${Math.min(100, acc.limit_used_percentage || 85)}%` }"
             />
           </div>
+
+          <button
+            v-if="!acc.is_primary"
+            type="button"
+            @click="store.setPrimaryBankAccount(acc.id)"
+            class="w-full py-1.5 px-3 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-500 hover:text-blue-600 border border-slate-200/70 hover:border-blue-200 text-xs font-semibold transition cursor-pointer text-center mt-2"
+          >
+            Tornar Conta Principal
+          </button>
         </div>
       </div>
 

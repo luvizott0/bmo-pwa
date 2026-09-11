@@ -46,6 +46,10 @@ export const financialService = {
     return api.post(`/bank-accounts/${accountId}/adjust-balance`, { current_balance })
   },
 
+  setPrimaryBankAccount: async (accountId: number) => {
+    return api.post(`/bank-accounts/${accountId}/set-primary`)
+  },
+
   deleteBankAccount: async (accountId: number) => {
     return api.delete(`/bank-accounts/${accountId}`)
   },
@@ -161,6 +165,27 @@ export const financialService = {
     }
   ) => {
     return api.post(`/subscriptions/${subscriptionId}/members/${memberId}/payments`, data)
+  },
+
+  paySubscription: async (
+    subscriptionId: number,
+    data?: {
+      amount?: number
+      payment_date?: string
+      bank_account_id?: number
+      credit_card_id?: number
+    }
+  ) => {
+    return api.post(`/subscriptions/${subscriptionId}/pay`, data || {})
+  },
+
+  unpaySubscription: async (
+    subscriptionId: number,
+    data?: {
+      reference_month?: string
+    }
+  ) => {
+    return api.post(`/subscriptions/${subscriptionId}/unpay`, data || {})
   },
 
   // Transactions

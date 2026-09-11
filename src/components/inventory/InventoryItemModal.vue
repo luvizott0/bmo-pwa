@@ -140,14 +140,14 @@ const handleSubmit = async () => {
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200 overflow-y-auto"
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200"
     @click.self="emit('close')"
   >
     <div
-      class="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150 my-8"
+      class="w-full max-w-xl max-h-[calc(100dvh-2rem)] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div class="flex items-center justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <Package class="w-5 h-5" />
@@ -171,18 +171,20 @@ const handleSubmit = async () => {
         </button>
       </div>
 
-      <!-- Error message -->
-      <div
-        v-if="errorMessage"
-        class="mt-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-2.5"
-      >
-        <AlertCircle class="w-4 h-4 shrink-0" />
-        <span>{{ errorMessage }}</span>
-      </div>
+      <form @submit.prevent="handleSubmit" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <!-- Scrollable Form Body -->
+        <div class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 overscroll-contain">
+          <!-- Error message -->
+          <div
+            v-if="errorMessage"
+            class="p-3.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-2.5"
+          >
+            <AlertCircle class="w-4 h-4 shrink-0" />
+            <span>{{ errorMessage }}</span>
+          </div>
 
-      <form @submit.prevent="handleSubmit" class="mt-5 space-y-4">
-        <!-- Nome & Marca -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <!-- Nome & Marca -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-slate-700 uppercase tracking-wider block">
               Nome do Item *
@@ -365,27 +367,28 @@ const handleSubmit = async () => {
             />
           </div>
         </div>
+      </div>
 
-        <!-- Actions -->
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            @click="emit('close')"
-            class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold transition cursor-pointer"
-          >
-            Cancelar
-          </button>
+      <!-- Actions (Pinned Footer) -->
+      <div class="p-4 sm:p-6 pt-3 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0 bg-slate-50/70">
+        <button
+          type="button"
+          @click="emit('close')"
+          class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-bold transition cursor-pointer"
+        >
+          Cancelar
+        </button>
 
-          <button
-            type="submit"
-            :disabled="isSubmitting"
-            class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 text-white text-sm font-bold shadow-sm shadow-indigo-600/20 transition cursor-pointer inline-flex items-center gap-2"
-          >
-            <span v-if="isSubmitting">Salvando...</span>
-            <span v-else>{{ isEditing ? 'Atualizar Item' : 'Cadastrar Item' }}</span>
-          </button>
-        </div>
-      </form>
-    </div>
+        <button
+          type="submit"
+          :disabled="isSubmitting"
+          class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 text-white text-sm font-bold shadow-sm shadow-indigo-600/20 transition cursor-pointer inline-flex items-center gap-2"
+        >
+          <span v-if="isSubmitting">Salvando...</span>
+          <span v-else>{{ isEditing ? 'Atualizar Item' : 'Cadastrar Item' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
   </div>
 </template>

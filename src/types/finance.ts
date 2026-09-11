@@ -7,6 +7,7 @@ export interface BankAccount {
   current_balance: number
   color_hex: string
   is_active: boolean
+  is_primary?: boolean
   badge: 'DEBIT' | 'CREDIT' | 'INVEST' | 'WALLET'
   account_number?: string
   daily_limit?: number
@@ -121,6 +122,15 @@ export interface Subscription {
   paid_count: number
   total_members: number
   is_family: boolean
+  is_paid?: boolean
+  current_payment?: {
+    id: number
+    amount: number
+    occurred_at: string
+    status: string
+    bank_account_id?: number | null
+    credit_card_id?: number | null
+  } | null
 }
 
 export interface QuarterlyMonth {

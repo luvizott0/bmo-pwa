@@ -172,6 +172,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
             current_balance: balance,
             color_hex: acc.color_hex || '#2563eb',
             is_active: !!acc.is_active,
+            is_primary: !!acc.is_primary,
             badge: acc.type === 'other' ? 'CREDIT' : 'DEBIT',
             account_number: `•••• ${String(acc.id).padStart(4, '492')}`,
             daily_limit: dailyLimit,
@@ -365,6 +366,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
             paid_count: paidCount,
             total_members: members.length || 1,
             is_family: members.length > 0,
+            is_paid: !!sub.is_paid,
+            current_payment: sub.current_payment || null,
           }
         })
       }
@@ -845,8 +848,48 @@ export const useDashboardStore = defineStore('dashboard', () => {
         reference_month: currentMonth,
         status: member.is_paid ? 'paid' : 'pending',
       })
+      await fetchDashboardData()
     } catch (e) {
       console.warn('Falha ao registrar pagamento do membro na API', e)
+    }
+  }
+
+  const toggleSubscriptionPayment = async (subscriptionId: number) => {
+    const sub = familySubscriptions.value.find(s => s.id === subscriptionId)
+    if (!sub) return
+
+    sub.is_paid = !sub.is_paid
+    saveStateToStorage()
+
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+    if (isOnline) {
+      try {
+        if (sub.is_paid) {
+          await financialService.paySubscription(subscriptionId)
+        } else {
+          await financialService.unpaySubscription(subscriptionId)
+        }
+        await fetchDashboardData()
+      } catch (e) {
+        console.warn('Falha ao alternar pagamento da assinatura na API', e)
+      }
+    }
+  }
+
+  const setPrimaryBankAccount = async (accountId: number) => {
+    bankAccounts.value.forEach(a => {
+      a.is_primary = (a.id === accountId)
+    })
+    saveStateToStorage()
+
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+    if (isOnline) {
+      try {
+        await financialService.setPrimaryBankAccount(accountId)
+        await fetchDashboardData()
+      } catch (e) {
+        console.warn('Falha ao definir conta bancária principal na API', e)
+      }
     }
   }
 
@@ -928,6 +971,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
     createSubscription,
     deleteSubscription,
     toggleMemberPayment,
+    toggleSubscriptionPayment,
+    setPrimaryBankAccount,
     resetState,
     addTransaction,
     toggleBillPaid,

@@ -59,10 +59,15 @@ const totalPaidThisMonth = computed(() => {
     .filter(b => b.is_paid)
     .reduce((acc, b) => acc + (b.current_payment?.amount || b.estimated_amount || 0), 0)
 
-  // For subscriptions, count what was paid in family or total if paid
+  // For subscriptions: if family, sum member shares; if individual, count total_amount if is_paid
   const subsPaid = store.familySubscriptions
-    .filter(s => s.total_members > 0 && s.paid_count === s.total_members)
-    .reduce((acc, s) => acc + (s.total_amount || 0), 0)
+    .reduce((acc, s) => {
+      if (s.is_family) {
+        return acc + (s.total_members > 0 && s.paid_count === s.total_members ? s.total_amount : s.members.filter(m => m.is_paid).reduce((mAcc, m) => mAcc + m.installment_amount, 0))
+      } else {
+        return acc + (s.is_paid ? s.total_amount : 0)
+      }
+    }, 0)
 
   return billsPaid + subsPaid
 })
@@ -75,7 +80,12 @@ const totalPendingThisMonth = computed(() => {
 
 const paidCount = computed(() => {
   const paidBills = store.upcomingBills.filter(b => b.is_paid).length
-  const paidSubs = store.familySubscriptions.filter(s => s.total_members > 0 && s.paid_count === s.total_members).length
+  const paidSubs = store.familySubscriptions.filter(s => {
+    if (s.is_family) {
+      return s.total_members > 0 && s.paid_count === s.total_members
+    }
+    return !!s.is_paid
+  }).length
   return paidBills + paidSubs
 })
 
@@ -104,6 +114,10 @@ const handleDeleteBill = async (billId: number) => {
 // Handlers for Subscriptions
 const handleToggleSubMember = async (subId: number, memberId: number) => {
   await store.toggleMemberPayment(subId, memberId)
+}
+
+const handleToggleSubscription = async (subId: number) => {
+  await store.toggleSubscriptionPayment(subId)
 }
 
 const handleDeleteSub = async (subId: number) => {
@@ -347,6 +361,7 @@ const handleRefresh = async () => {
           :key="sub.id"
           :subscription="sub"
           @toggle-member="handleToggleSubMember"
+          @toggle-subscription="handleToggleSubscription"
           @delete="handleDeleteSub"
         />
 

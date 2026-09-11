@@ -132,10 +132,10 @@ const handleSubmit = async () => {
     @click.self="emit('close')"
   >
     <div
-      class="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150 my-8"
+      class="w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col bg-white rounded-3xl shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150 my-auto overflow-hidden"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div class="flex items-center justify-between p-6 sm:p-7 pb-4 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <ShoppingCart class="w-5 h-5" />
@@ -162,13 +162,13 @@ const handleSubmit = async () => {
       <!-- Error message -->
       <div
         v-if="errorMessage"
-        class="mt-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-2.5"
+        class="mx-6 sm:mx-7 mt-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-2.5 shrink-0"
       >
         <AlertCircle class="w-4 h-4 shrink-0" />
         <span>{{ errorMessage }}</span>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="mt-5 space-y-4">
+      <form id="restock-form" @submit.prevent="handleSubmit" class="flex-1 overflow-y-auto p-6 sm:p-7 pt-4 space-y-4">
         <!-- Automatic Cycle Duration Info Card -->
         <div
           v-if="item.last_purchased_at && autoDurationDays"
@@ -314,27 +314,28 @@ const handleSubmit = async () => {
             R$ {{ (Number(quantity) * Number(unitPrice)).toFixed(2).replace('.', ',') }}
           </span>
         </div>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            @click="emit('close')"
-            class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold transition cursor-pointer"
-          >
-            Cancelar
-          </button>
-
-          <button
-            type="submit"
-            :disabled="isSubmitting"
-            class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white text-sm font-bold shadow-sm shadow-emerald-600/20 transition cursor-pointer inline-flex items-center gap-2"
-          >
-            <span v-if="isSubmitting">Registrando...</span>
-            <span v-else>Confirmar Reposição</span>
-          </button>
-        </div>
       </form>
+
+      <!-- Actions -->
+      <div class="p-6 sm:p-7 pt-4 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0 bg-slate-50/50">
+        <button
+          type="button"
+          @click="emit('close')"
+          class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-bold transition cursor-pointer"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          form="restock-form"
+          :disabled="isSubmitting"
+          class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white text-sm font-bold shadow-sm shadow-emerald-600/20 transition cursor-pointer inline-flex items-center gap-2"
+        >
+          <span v-if="isSubmitting">Registrando...</span>
+          <span v-else>Confirmar Reposição</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Lock,
@@ -10,13 +10,41 @@ import {
   AlertCircle,
   KeyRound,
   RefreshCw,
+  Landmark,
+  Check,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
+import { formatCurrency } from '@/utils/formatters'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
+
+const isSettingPrimary = ref<number | null>(null)
+const primarySuccessMessage = ref<string | null>(null)
+
+onMounted(async () => {
+  if (dashboardStore.bankAccounts.length === 0) {
+    await dashboardStore.fetchDashboardData()
+  }
+})
+
+const handleSetPrimary = async (accountId: number) => {
+  isSettingPrimary.value = accountId
+  primarySuccessMessage.value = null
+  try {
+    await dashboardStore.setPrimaryBankAccount(accountId)
+    primarySuccessMessage.value = 'Conta bancária principal atualizada com sucesso!'
+    setTimeout(() => {
+      primarySuccessMessage.value = null
+    }, 4000)
+  } catch (err: any) {
+    console.error('Erro ao definir conta principal:', err)
+  } finally {
+    isSettingPrimary.value = null
+  }
+}
 
 // Change Password form state
 const currentPassword = ref('')
@@ -133,6 +161,119 @@ const handleLogout = async () => {
         <span class="bg-slate-100 text-slate-800 px-3 py-1 rounded-xl font-bold">
           {{ authStore.workspaces?.[0]?.name || 'Meu Espaço Pessoal' }}
         </span>
+      </div>
+    </div>
+
+    <!-- Primary Bank Account Section -->
+    <div class="rounded-[26px] bg-white p-6 sm:p-7 border border-slate-100 shadow-sm space-y-6">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <Landmark class="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              Conta Bancária Principal
+            </h3>
+            <p class="text-xs text-slate-400 font-medium mt-0.5">
+              Esta conta receberá os valores de rateios de assinaturas em família e transferências padrão.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          @click="router.push('/accounts')"
+          class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition cursor-pointer hidden sm:inline-block"
+        >
+          Gerenciar Contas →
+        </button>
+      </div>
+
+      <!-- Success message for primary account -->
+      <div
+        v-if="primarySuccessMessage"
+        class="flex items-center gap-2.5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold animate-in fade-in duration-200"
+      >
+        <CheckCircle2 class="w-5 h-5 text-emerald-600 shrink-0" />
+        <span>{{ primarySuccessMessage }}</span>
+      </div>
+
+      <!-- Accounts Grid / List -->
+      <div v-if="dashboardStore.bankAccounts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div
+          v-for="acc in dashboardStore.bankAccounts"
+          :key="acc.id"
+          @click="!acc.is_primary && handleSetPrimary(acc.id)"
+          :class="[
+            'p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between gap-3',
+            acc.is_primary
+              ? 'bg-blue-50/50 border-blue-200 ring-2 ring-blue-500/20 shadow-xs'
+              : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-xs cursor-pointer'
+          ]"
+        >
+          <!-- Left: Color badge & Account details -->
+          <div class="flex items-center gap-3 min-w-0">
+            <div
+              class="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-2xs font-bold text-xs"
+              :style="{ backgroundColor: acc.color_hex || '#2563eb' }"
+            >
+              <Landmark class="w-5 h-5" />
+            </div>
+
+            <div class="min-w-0 truncate">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-bold text-slate-900 truncate">
+                  {{ acc.name }}
+                </span>
+                <span
+                  v-if="acc.is_primary"
+                  class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-600 text-white shrink-0 shadow-2xs"
+                >
+                  <Check class="w-3 h-3 stroke-[3]" />
+                  Principal
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 font-medium truncate">
+                {{ acc.bank_name }} • Saldo: <strong class="text-slate-700">{{ formatCurrency(acc.current_balance) }}</strong>
+              </p>
+            </div>
+          </div>
+
+          <!-- Right: Button / Status -->
+          <div class="shrink-0">
+            <span
+              v-if="acc.is_primary"
+              class="text-xs font-bold text-blue-600 bg-blue-100/70 px-3 py-1.5 rounded-xl block text-center"
+            >
+              Padrão
+            </span>
+            <button
+              v-else
+              type="button"
+              @click.stop="handleSetPrimary(acc.id)"
+              :disabled="isSettingPrimary === acc.id"
+              class="text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50/80 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-blue-200 transition cursor-pointer disabled:opacity-50"
+            >
+              {{ isSettingPrimary === acc.id ? 'Definindo...' : 'Tornar Principal' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state if no bank accounts -->
+      <div
+        v-else
+        class="text-center py-6 px-4 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-slate-400"
+      >
+        <p class="text-xs font-semibold">Nenhuma conta bancária cadastrada no seu espaço.</p>
+        <button
+          type="button"
+          @click="router.push('/accounts')"
+          class="mt-2 text-xs font-bold text-indigo-600 hover:underline cursor-pointer"
+        >
+          + Cadastrar Conta Bancária
+        </button>
       </div>
     </div>
 
