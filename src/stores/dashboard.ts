@@ -9,6 +9,7 @@ import type {
   CreditCard,
   TransactionMutation,
   TransactionItem,
+  WorkspaceMemberItem,
 } from '@/types/finance'
 import { financialService } from '@/services/financialService'
 import { useAuthStore } from './auth'
@@ -39,6 +40,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const upcomingBills = ref<FixedBill[]>([])
   const bankAccounts = ref<BankAccount[]>([])
   const creditCards = ref<CreditCard[]>([])
+  const workspaceMembers = ref<WorkspaceMemberItem[]>([])
   const recentTransactions = ref<TransactionItem[]>([])
   const offlineQueue = ref<TransactionMutation[]>([])
   const lastSyncDate = ref<string>(new Date().toISOString())
@@ -148,24 +150,31 @@ export const useDashboardStore = defineStore('dashboard', () => {
         await syncPendingQueue()
       }
 
-      const [accountsRes, cardsRes, billsRes, subsRes, txRes] = await Promise.all([
+      const currentWorkspaceId = authStore.activeWorkspaceId || authStore.workspaces?.[0]?.id
+      const [accountsRes, cardsRes, billsRes, subsRes, txRes, membersRes] = await Promise.all([
         financialService.getBankAccounts().catch(() => null),
         financialService.getCreditCards().catch(() => null),
         financialService.getFixedBills().catch(() => null),
         financialService.getSubscriptions().catch(() => null),
         financialService.getTransactions().catch(() => null),
+        currentWorkspaceId ? financialService.getWorkspaceMembers(currentWorkspaceId).catch(() => null) : Promise.resolve(null),
       ])
+
+      if (membersRes?.data && Array.isArray(membersRes.data)) {
+        workspaceMembers.value = membersRes.data
+      }
 
       // 1. Process Bank Accounts
       if (accountsRes?.data && Array.isArray(accountsRes.data)) {
         bankAccounts.value = accountsRes.data.map((acc: any) => {
           const balance = Number(acc.current_balance || 0)
-          const dailyLimit = acc.daily_limit || (acc.name?.includes('Chase') ? 5000 : 10000)
-          const limitUsedPct = Math.min(100, Math.round((balance / dailyLimit) * 100))
 
           return {
             id: acc.id,
             workspace_id: acc.workspace_id,
+            user_id: acc.user_id,
+            user: acc.user || null,
+            is_shared: acc.is_shared !== undefined ? !!acc.is_shared : true,
             bank_name: acc.bank_name || acc.name || 'Conta',
             name: acc.name || acc.bank_name || 'Conta',
             type: acc.type || 'checking',
@@ -175,8 +184,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
             is_primary: !!acc.is_primary,
             badge: acc.type === 'other' ? 'CREDIT' : 'DEBIT',
             account_number: `•••• ${String(acc.id).padStart(4, '492')}`,
-            daily_limit: dailyLimit,
-            limit_used_percentage: limitUsedPct,
           }
         })
 
@@ -196,6 +203,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
           return {
             id: card.id,
             workspace_id: card.workspace_id,
+            user_id: card.user_id,
+            user: card.user || null,
+            is_shared: card.is_shared !== undefined ? !!card.is_shared : true,
             bank_account_id: card.bank_account_id,
             bank_account: card.bank_account,
             type: card.type || 'credit',
@@ -648,9 +658,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
           current_balance: account.current_balance,
           color_hex: account.color_hex,
           is_active: true,
+          is_shared: account.is_shared,
+          user_id: account.user_id,
         })
         if (res?.data?.id) {
           newAccount.id = res.data.id
+          if (res.data.user) newAccount.user = res.data.user
           saveStateToStorage()
         }
       } catch (e) {
@@ -660,6 +673,54 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
     summary.value.total_balance = bankAccounts.value.reduce((acc, curr) => acc + curr.current_balance, 0)
     saveStateToStorage()
+  }
+
+  const updateAccount = async (id: number, payload: {
+    name: string
+    bank_name: string
+    type: 'checking' | 'savings' | 'investment' | 'cash' | 'other'
+    current_balance: number
+    color_hex: string
+    is_shared?: boolean
+    user_id?: number | null
+  }) => {
+    const account = bankAccounts.value.find(a => a.id === id)
+    if (account) {
+      account.name = payload.name
+      account.bank_name = payload.bank_name
+      account.type = payload.type
+      account.current_balance = payload.current_balance
+      account.color_hex = payload.color_hex
+      if (payload.is_shared !== undefined) account.is_shared = payload.is_shared
+      if (payload.user_id !== undefined) {
+        account.user_id = payload.user_id
+        const member = workspaceMembers.value.find(m => m.id === payload.user_id)
+        if (member) {
+          account.user = { id: member.id, name: member.name, email: member.email }
+        }
+      }
+    }
+
+    summary.value.total_balance = bankAccounts.value.reduce((acc, curr) => acc + curr.current_balance, 0)
+    saveStateToStorage()
+
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+    if (isOnline) {
+      try {
+        await financialService.updateBankAccount(id, {
+          name: payload.name,
+          bank_name: payload.bank_name,
+          type: payload.type,
+          current_balance: payload.current_balance,
+          color_hex: payload.color_hex,
+          is_shared: payload.is_shared,
+          user_id: payload.user_id,
+        })
+        await fetchDashboardData()
+      } catch (e) {
+        console.warn('Falha ao atualizar conta bancária na API', e)
+      }
+    }
   }
 
   const addCreditCard = async (cardData: {
@@ -673,14 +734,21 @@ export const useDashboardStore = defineStore('dashboard', () => {
     due_day?: number
     color_hex?: string
     card_last_digits?: string
+    is_shared?: boolean
+    user_id?: number | null
   }) => {
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
     const newId = creditCards.value.length > 0 ? Math.max(...creditCards.value.map(c => c.id)) + 1 : 1
     const linkedAccount = bankAccounts.value.find(a => a.id === cardData.bank_account_id)
     const totalLimit = Number(cardData.total_limit || 0)
+    const member = workspaceMembers.value.find(m => m.id === cardData.user_id)
 
     const newCard: CreditCard = {
       id: newId,
+      workspace_id: undefined,
+      user_id: cardData.user_id,
+      user: member ? { id: member.id, name: member.name, email: member.email } : null,
+      is_shared: cardData.is_shared !== undefined ? cardData.is_shared : true,
       bank_account_id: cardData.bank_account_id,
       bank_account: linkedAccount ? { id: linkedAccount.id, name: linkedAccount.name, color_hex: linkedAccount.color_hex } : null,
       type: cardData.type,
@@ -714,14 +782,86 @@ export const useDashboardStore = defineStore('dashboard', () => {
           due_day: cardData.due_day,
           color_hex: cardData.color_hex || '#ea580c',
           is_active: true,
+          is_shared: cardData.is_shared,
+          user_id: cardData.user_id,
         })
         if (res?.data?.id) {
           newCard.id = res.data.id
+          if (res.data.user) newCard.user = res.data.user
           saveStateToStorage()
         }
       } catch (e) {
         console.warn('Falha ao registrar cartão no servidor', e)
       }
+    }
+  }
+
+  const updateCreditCard = async (id: number, payload: {
+    name: string
+    brand: string
+    bank_account_id?: number
+    type?: 'credit' | 'debit'
+    total_limit?: number
+    daily_limit?: number
+    closing_day?: number
+    due_day?: number
+    color_hex?: string
+    is_shared?: boolean
+    user_id?: number | null
+  }) => {
+    const card = creditCards.value.find(c => c.id === id)
+    if (card) {
+      card.name = payload.name
+      card.brand = payload.brand
+      if (payload.bank_account_id !== undefined) {
+        card.bank_account_id = payload.bank_account_id
+        const linkedAccount = bankAccounts.value.find(a => a.id === payload.bank_account_id)
+        card.bank_account = linkedAccount ? { id: linkedAccount.id, name: linkedAccount.name, color_hex: linkedAccount.color_hex } : null
+      }
+      if (payload.type !== undefined) card.type = payload.type
+      if (payload.total_limit !== undefined) {
+        card.total_limit = payload.total_limit
+        card.available_limit = Math.max(0, payload.total_limit - (card.used_limit || 0))
+      }
+      if (payload.daily_limit !== undefined) card.daily_limit = payload.daily_limit
+      if (payload.closing_day !== undefined) card.closing_day = payload.closing_day
+      if (payload.due_day !== undefined) card.due_day = payload.due_day
+      if (payload.color_hex !== undefined) card.color_hex = payload.color_hex
+      if (payload.is_shared !== undefined) card.is_shared = payload.is_shared
+      if (payload.user_id !== undefined) {
+        card.user_id = payload.user_id
+        const member = workspaceMembers.value.find(m => m.id === payload.user_id)
+        if (member) {
+          card.user = { id: member.id, name: member.name, email: member.email }
+        }
+      }
+    }
+
+    saveStateToStorage()
+
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+    if (isOnline) {
+      try {
+        await financialService.updateCreditCard(id, payload)
+        await fetchDashboardData()
+      } catch (e) {
+        console.warn('Falha ao atualizar cartão na API', e)
+      }
+    }
+  }
+
+  const fetchWorkspaceMembers = async () => {
+    const authStore = useAuthStore()
+    const currentWorkspaceId = authStore.activeWorkspaceId || authStore.workspaces?.[0]?.id
+    if (!currentWorkspaceId) return
+
+    try {
+      const res = await financialService.getWorkspaceMembers(currentWorkspaceId)
+      if (res?.data && Array.isArray(res.data)) {
+        workspaceMembers.value = res.data
+      }
+    } catch (e) {
+      console.warn('Falha ao obter membros do workspace', e)
     }
   }
 
@@ -979,6 +1119,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
     addAccount,
     addCreditCard,
     fetchCardMonthlyLimits,
+    workspaceMembers,
+    fetchWorkspaceMembers,
+    updateAccount,
+    updateCreditCard,
     deleteBankAccount,
     deleteCreditCard,
     syncPendingQueue,

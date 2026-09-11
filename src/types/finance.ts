@@ -1,6 +1,16 @@
+export interface WorkspaceMemberItem {
+  id: number
+  name: string
+  email: string
+  role?: string
+}
+
 export interface BankAccount {
   id: number
   workspace_id?: number
+  user_id?: number | null
+  user?: { id: number; name: string; email: string } | null
+  is_shared?: boolean
   bank_name: string
   name: string
   type: 'checking' | 'savings' | 'investment' | 'cash' | 'other'
@@ -10,13 +20,14 @@ export interface BankAccount {
   is_primary?: boolean
   badge: 'DEBIT' | 'CREDIT' | 'INVEST' | 'WALLET'
   account_number?: string
-  daily_limit?: number
-  limit_used_percentage?: number
 }
 
 export interface CreditCard {
   id: number
   workspace_id?: number
+  user_id?: number | null
+  user?: { id: number; name: string; email: string } | null
+  is_shared?: boolean
   bank_account_id?: number
   bank_account?: { id: number; name: string; color_hex?: string } | null
   name: string

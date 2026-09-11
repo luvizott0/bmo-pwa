@@ -38,8 +38,24 @@ export const financialService = {
     current_balance: number
     color_hex: string
     is_active?: boolean
+    is_shared?: boolean
+    user_id?: number | null
   }) => {
     return api.post('/bank-accounts', data)
+  },
+
+  updateBankAccount: async (accountId: number, data: {
+    bank_name?: string
+    name?: string
+    type?: string
+    current_balance?: number
+    color_hex?: string
+    is_active?: boolean
+    is_primary?: boolean
+    is_shared?: boolean
+    user_id?: number | null
+  }) => {
+    return api.put(`/bank-accounts/${accountId}`, data)
   },
 
   adjustAccountBalance: async (accountId: number, current_balance: number) => {
@@ -70,8 +86,27 @@ export const financialService = {
     due_day?: number
     color_hex: string
     is_active?: boolean
+    is_shared?: boolean
+    user_id?: number | null
   }) => {
     return api.post('/credit-cards', data)
+  },
+
+  updateCreditCard: async (cardId: number, data: {
+    name?: string
+    brand?: string
+    bank_account_id?: number
+    type?: 'credit' | 'debit'
+    total_limit?: number
+    daily_limit?: number
+    closing_day?: number
+    due_day?: number
+    color_hex?: string
+    is_active?: boolean
+    is_shared?: boolean
+    user_id?: number | null
+  }) => {
+    return api.put(`/credit-cards/${cardId}`, data)
   },
 
   getCardMonthlyLimits: async (cardId: number, months = 12) => {
@@ -80,6 +115,11 @@ export const financialService = {
 
   deleteCreditCard: async (cardId: number) => {
     return api.delete(`/credit-cards/${cardId}`)
+  },
+
+  // Workspace Members
+  getWorkspaceMembers: async (workspaceId: number | string) => {
+    return api.get(`/workspaces/${workspaceId}/members`)
   },
 
   // Fixed Bills (Upcoming Bills / Contas a Pagar)

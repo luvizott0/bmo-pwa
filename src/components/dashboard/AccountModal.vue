@@ -19,7 +19,6 @@ const badge = ref<'DEBIT' | 'CREDIT'>('DEBIT')
 const name = ref('')
 const bankName = ref('')
 const balance = ref<number | null>(null)
-const dailyLimit = ref<number | null>(null)
 const accountNumber = ref('')
 
 // Credit Card fields
@@ -47,8 +46,6 @@ const handleSubmit = async () => {
       is_active: true,
       badge: 'DEBIT',
       account_number: accountNumber.value ? `•••• ${accountNumber.value.slice(-4)}` : '•••• 1234',
-      daily_limit: dailyLimit.value ? Number(dailyLimit.value) : 5000,
-      limit_used_percentage: dailyLimit.value ? Math.min(100, Math.round((Number(balance.value) / Number(dailyLimit.value)) * 100)) : 80,
     })
   } else {
     if (!cardName.value || totalLimit.value === null) return
@@ -70,7 +67,6 @@ const handleSubmit = async () => {
   name.value = ''
   bankName.value = ''
   balance.value = null
-  dailyLimit.value = null
   cardName.value = ''
   totalLimit.value = null
   accountNumber.value = ''
@@ -140,32 +136,18 @@ const handleSubmit = async () => {
             />
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Saldo Atual (R$)
-              </label>
-              <input
-                v-model="balance"
-                type="number"
-                step="0.01"
-                required
-                placeholder="4250.00"
-                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Limite Diário (R$)
-              </label>
-              <input
-                v-model="dailyLimit"
-                type="number"
-                step="0.01"
-                placeholder="5000.00"
-                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
-              />
-            </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Saldo Atual (R$)
+            </label>
+            <input
+              v-model="balance"
+              type="number"
+              step="0.01"
+              required
+              placeholder="4250.00"
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+            />
           </div>
         </template>
 
