@@ -10,6 +10,8 @@ import type {
   TransactionMutation,
   TransactionItem,
   WorkspaceMemberItem,
+  Friend,
+  SubscriptionHistoryItem,
 } from '@/types/finance'
 import { financialService } from '@/services/financialService'
 import { useAuthStore } from './auth'
@@ -41,6 +43,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const bankAccounts = ref<BankAccount[]>([])
   const creditCards = ref<CreditCard[]>([])
   const workspaceMembers = ref<WorkspaceMemberItem[]>([])
+  const friends = ref<Friend[]>([])
+  const isFetchingFriends = ref(false)
   const recentTransactions = ref<TransactionItem[]>([])
   const offlineQueue = ref<TransactionMutation[]>([])
   const lastSyncDate = ref<string>(new Date().toISOString())
@@ -151,17 +155,22 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
 
       const currentWorkspaceId = authStore.activeWorkspaceId || authStore.workspaces?.[0]?.id
-      const [accountsRes, cardsRes, billsRes, subsRes, txRes, membersRes] = await Promise.all([
+      const [accountsRes, cardsRes, billsRes, subsRes, txRes, membersRes, friendsRes] = await Promise.all([
         financialService.getBankAccounts().catch(() => null),
         financialService.getCreditCards().catch(() => null),
         financialService.getFixedBills().catch(() => null),
         financialService.getSubscriptions().catch(() => null),
         financialService.getTransactions().catch(() => null),
         currentWorkspaceId ? financialService.getWorkspaceMembers(currentWorkspaceId).catch(() => null) : Promise.resolve(null),
+        financialService.getFriends().catch(() => null),
       ])
 
       if (membersRes?.data && Array.isArray(membersRes.data)) {
         workspaceMembers.value = membersRes.data
+      }
+
+      if (friendsRes?.data && Array.isArray(friendsRes.data)) {
+        friends.value = friendsRes.data
       }
 
       // 1. Process Bank Accounts
@@ -1038,6 +1047,42 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  const fetchFriends = async () => {
+    isFetchingFriends.value = true
+    try {
+      const res = await financialService.getFriends()
+      friends.value = res?.data || []
+      return friends.value
+    } catch (e) {
+      console.warn('Falha ao carregar amigos na API', e)
+      return []
+    } finally {
+      isFetchingFriends.value = false
+    }
+  }
+
+  const createFriend = async (data: { name: string; phone: string; notes?: string | null }) => {
+    const res = await financialService.createFriend(data)
+    await fetchFriends()
+    return res?.data
+  }
+
+  const updateFriend = async (id: number, data: { name?: string; phone?: string; notes?: string | null }) => {
+    const res = await financialService.updateFriend(id, data)
+    await fetchFriends()
+    return res?.data
+  }
+
+  const deleteFriend = async (id: number) => {
+    await financialService.deleteFriend(id)
+    friends.value = friends.value.filter(f => f.id !== id)
+  }
+
+  const fetchSubscriptionsHistory = async (params?: { subscription_id?: number; reference_month?: string }) => {
+    const res = await financialService.getSubscriptionsHistory(params)
+    return res?.data as { data: SubscriptionHistoryItem[]; total_paid: number; count: number }
+  }
+
   const setPrimaryBankAccount = async (accountId: number) => {
     bankAccounts.value.forEach(a => {
       a.is_primary = (a.id === accountId)
@@ -1128,6 +1173,13 @@ export const useDashboardStore = defineStore('dashboard', () => {
     hasOfflineChanges,
     totalCreditAvailable,
     totalAccountsCount,
+    friends,
+    isFetchingFriends,
+    fetchFriends,
+    createFriend,
+    updateFriend,
+    deleteFriend,
+    fetchSubscriptionsHistory,
     fetchDashboardData,
     fetchFullTransactions,
     createSubscription,

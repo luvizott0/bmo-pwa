@@ -33,16 +33,14 @@ const router = createRouter({
     },
     {
       path: '/fixed-expenses',
-      alias: '/subscriptions',
       name: 'fixed-expenses',
       component: () => import('../views/FixedExpensesView.vue'),
       meta: { requiresAuth: true },
     },
     {
-      path: '/inventory',
-      alias: '/estoque',
-      name: 'inventory',
-      component: () => import('../views/InventoryView.vue'),
+      path: '/subscriptions',
+      name: 'subscriptions',
+      component: () => import('../views/SubscriptionsView.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -55,12 +53,6 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsView,
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/invites/stock/:token',
-      name: 'stock-invite',
-      component: () => import('../views/StockInviteView.vue'),
       meta: { requiresAuth: true },
     },
   ],

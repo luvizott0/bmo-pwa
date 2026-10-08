@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LayoutGrid, Wallet, Settings, CalendarCheck2, Package } from 'lucide-vue-next'
+import { LayoutGrid, Wallet, Settings, CalendarCheck2, Tv } from 'lucide-vue-next'
 import { RouterLink, useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -7,8 +7,8 @@ const route = useRoute()
 const mobileTabs = [
   { name: 'Início', path: '/', icon: LayoutGrid },
   { name: 'Contas', path: '/accounts', icon: Wallet },
-  { name: 'Despesas Fixas', path: '/fixed-expenses', icon: CalendarCheck2 },
-  { name: 'Estoque', path: '/inventory', icon: Package },
+  { name: 'Contas da Casa', path: '/fixed-expenses', icon: CalendarCheck2 },
+  { name: 'Assinaturas', path: '/subscriptions', icon: Tv },
   { name: 'Configurações', path: '/settings', icon: Settings },
 ]
 </script>
@@ -25,7 +25,7 @@ const mobileTabs = [
       :aria-label="tab.name"
       :class="[
         'flex items-center justify-center p-2.5 rounded-2xl transition-all duration-150',
-        route.path === tab.path || (tab.path === '/fixed-expenses' && route.path === '/subscriptions')
+        route.path === tab.path
           ? 'text-indigo-600 bg-indigo-50/80 shadow-2xs'
           : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
       ]"

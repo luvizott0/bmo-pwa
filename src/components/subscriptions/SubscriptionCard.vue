@@ -11,6 +11,7 @@ import {
   UserCheck,
   RotateCcw,
   Pencil,
+  History,
 } from 'lucide-vue-next'
 import { formatCurrency } from '@/utils/formatters'
 import type { Subscription, SubscriptionMember } from '@/types/finance'
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   (e: 'toggleSubscription', subId: number): void
   (e: 'delete', subId: number): void
   (e: 'edit', subscription: Subscription): void
+  (e: 'viewHistory', subscription: Subscription): void
 }>()
 
 const isAllPaid = computed(() => {
@@ -101,6 +103,14 @@ const perPersonAmount = computed(() => {
             <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               {{ formatCurrency(subscription.total_amount) }}
             </span>
+            <button
+              type="button"
+              @click="emit('viewHistory', subscription)"
+              title="Ver histórico desta assinatura"
+              class="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+            >
+              <History class="w-4 h-4" />
+            </button>
             <button
               type="button"
               @click="emit('edit', subscription)"

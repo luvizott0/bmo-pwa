@@ -67,6 +67,7 @@ const isFamilyPlan = ref(false)
 
 interface MemberDraft {
   id: string
+  friend_id?: number | null
   name: string
   contact: string
   installment_amount: number
@@ -75,6 +76,21 @@ interface MemberDraft {
 const members = ref<MemberDraft[]>([])
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
+
+const onSelectFriend = (member: MemberDraft, event: Event) => {
+  const target = event.target as HTMLSelectElement
+  const fId = Number(target.value)
+  if (!fId) {
+    member.friend_id = null
+    return
+  }
+  const found = store.friends.find(f => f.id === fId)
+  if (found) {
+    member.friend_id = found.id
+    member.name = found.name
+    member.contact = found.phone
+  }
+}
 
 // When selecting a preset
 const applyPreset = (preset: typeof servicePresets[0]) => {
@@ -110,8 +126,8 @@ function resetForm() {
   // Initial members for family plan
   const userName = store.summary.user_name || 'Você'
   members.value = [
-    { id: '1', name: userName, contact: '', installment_amount: 0 },
-    { id: '2', name: 'Amigo / Familiar', contact: '', installment_amount: 0 },
+    { id: '1', friend_id: null, name: userName, contact: '', installment_amount: 0 },
+    { id: '2', friend_id: null, name: '', contact: '', installment_amount: 0 },
   ]
 }
 
@@ -138,16 +154,17 @@ function populateForm() {
       isFamilyPlan.value = true
       members.value = sub.members.map((m) => ({
         id: String(m.id),
+        friend_id: m.friend_id || null,
         name: m.name,
-        contact: m.contact || '',
+        contact: m.contact || (m.friend?.phone || ''),
         installment_amount: m.installment_amount,
       }))
     } else {
       isFamilyPlan.value = false
       const userName = store.summary.user_name || 'Você'
       members.value = [
-        { id: '1', name: userName, contact: '', installment_amount: 0 },
-        { id: '2', name: 'Amigo / Familiar', contact: '', installment_amount: 0 },
+        { id: '1', friend_id: null, name: userName, contact: '', installment_amount: 0 },
+        { id: '2', friend_id: null, name: '', contact: '', installment_amount: 0 },
       ]
     }
   } else {
@@ -260,9 +277,10 @@ const handleSubmit = async () => {
         const isDbId = m.id && !m.id.includes('-') && Number(m.id) < 1000000000000
         return {
           ...(isDbId ? { id: Number(m.id) } : {}),
+          friend_id: m.friend_id || null,
           name: m.name.trim() || 'Participante',
           installment_amount: Number(m.installment_amount) || Math.round((Number(totalAmount.value) / members.value.length) * 100) / 100,
-          contact: m.contact.trim() || null,
+          contact: m.contact ? m.contact.trim() : null,
         }
       })
     } else if (isEditing.value && !isFamilyPlan.value) {
@@ -518,40 +536,68 @@ const handleSubmit = async () => {
           </div>
 
           <!-- Lista de Membros -->
-          <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+          <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
             <div
               v-for="(member, idx) in members"
               :key="member.id"
-              class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80"
+              class="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2"
             >
-              <input
-                v-model="member.name"
-                type="text"
-                required
-                placeholder="Nome do amigo"
-                class="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
+              <div class="flex items-center gap-2">
+                <!-- Seletor de amigos cadastrados -->
+                <select
+                  v-if="store.friends.length > 0 && idx > 0"
+                  :value="member.friend_id || ''"
+                  @change="onSelectFriend(member, $event)"
+                  class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shrink-0"
+                >
+                  <option value="">👤 Escolher Amigo</option>
+                  <option v-for="friend in store.friends" :key="friend.id" :value="friend.id">
+                    {{ friend.name }}
+                  </option>
+                </select>
 
-              <div class="w-24 relative">
-                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-bold">R$</span>
                 <input
-                  v-model.number="member.installment_amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
+                  v-model="member.name"
+                  type="text"
                   required
-                  class="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-black text-slate-900 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="Nome do amigo"
+                  class="flex-1 min-w-0 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
+
+                <div class="w-24 relative shrink-0">
+                  <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-bold">R$</span>
+                  <input
+                    v-model.number="member.installment_amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    class="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-black text-slate-900 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <button
+                  v-if="members.length > 1"
+                  type="button"
+                  @click="removeMember(idx)"
+                  class="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition cursor-pointer shrink-0"
+                >
+                  <Trash2 class="w-4 h-4" />
+                </button>
               </div>
 
-              <button
-                v-if="members.length > 1"
-                type="button"
-                @click="removeMember(idx)"
-                class="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition cursor-pointer"
-              >
-                <Trash2 class="w-4 h-4" />
-              </button>
+              <!-- Telefone / WhatsApp para Conciliação -->
+              <div v-if="idx > 0" class="flex items-center gap-2 pl-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                  WhatsApp:
+                </span>
+                <input
+                  v-model="member.contact"
+                  type="text"
+                  placeholder="Ex: 11988887777 (para match automático de Pix)"
+                  class="flex-1 px-2.5 py-1 bg-white/80 border border-slate-200 rounded-lg text-[11px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
             </div>
           </div>
         </div>

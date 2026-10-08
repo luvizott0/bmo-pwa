@@ -90,6 +90,16 @@ export interface FixedBill {
   payments?: FixedBillPayment[]
 }
 
+export interface Friend {
+  id: number
+  workspace_id?: number
+  name: string
+  phone: string
+  notes?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
 export interface SubscriptionPayment {
   id: number
   subscription_member_id: number
@@ -97,11 +107,16 @@ export interface SubscriptionPayment {
   amount: number
   status: 'paid' | 'pending'
   payment_date?: string | null
+  pix_e2e_id?: string | null
+  receipt_metadata?: any
 }
 
 export interface SubscriptionMember {
   id: number
   subscription_id?: number
+  user_id?: number | null
+  friend_id?: number | null
+  friend?: Friend | null
   name: string
   contact?: string | null
   initials: string
@@ -109,6 +124,27 @@ export interface SubscriptionMember {
   installment_amount: number
   is_paid: boolean
   payments?: SubscriptionPayment[]
+}
+
+export interface SubscriptionHistoryItem {
+  id: string
+  payment_id?: number
+  transaction_id?: number
+  type: 'shared_member' | 'individual'
+  subscription_id: number
+  subscription_name: string
+  subscription_color: string
+  member_id?: number | null
+  member_name: string
+  member_contact?: string | null
+  friend_id?: number | null
+  reference_month: string
+  amount: number
+  payment_date: string
+  payment_method: string
+  pix_e2e_id?: string | null
+  receipt_metadata?: any
+  created_at?: string
 }
 
 export interface Subscription {

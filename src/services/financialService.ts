@@ -173,6 +173,7 @@ export const financialService = {
       name: string
       installment_amount: number
       contact?: string | null
+      friend_id?: number | null
     }>
   }) => {
     return api.post('/subscriptions', data)
@@ -194,6 +195,7 @@ export const financialService = {
       installment_amount: number
       contact?: string | null
       user_id?: number | null
+      friend_id?: number | null
     }>
   }) => {
     return api.put(`/subscriptions/${id}`, data)
@@ -243,6 +245,32 @@ export const financialService = {
     }
   ) => {
     return api.post(`/subscriptions/${subscriptionId}/unpay`, data || {})
+  },
+
+  // Subscriptions History
+  getSubscriptionsHistory: async (params?: { subscription_id?: number; reference_month?: string }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.subscription_id) searchParams.append('subscription_id', String(params.subscription_id))
+    if (params?.reference_month) searchParams.append('reference_month', params.reference_month)
+    const query = searchParams.toString()
+    return api.get(`/subscriptions/history${query ? `?${query}` : ''}`)
+  },
+
+  // Friends (Amigos para rateio de assinaturas)
+  getFriends: async () => {
+    return api.get('/friends')
+  },
+
+  createFriend: async (data: { name: string; phone: string; notes?: string | null }) => {
+    return api.post('/friends', data)
+  },
+
+  updateFriend: async (id: number, data: { name?: string; phone?: string; notes?: string | null }) => {
+    return api.put(`/friends/${id}`, data)
+  },
+
+  deleteFriend: async (id: number) => {
+    return api.delete(`/friends/${id}`)
   },
 
   // Transactions
