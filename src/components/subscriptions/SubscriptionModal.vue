@@ -298,7 +298,7 @@ const handleSubmit = async () => {
     emit('close')
   } catch (err: any) {
     console.error('Erro ao salvar assinatura:', err)
-    errorMessage.value = err.response?.data?.message || 'Falha ao salvar a assinatura. Verifique os dados.'
+    errorMessage.value = err.message || err.response?.data?.message || 'Falha ao salvar a assinatura. Verifique os dados.'
   } finally {
     isSubmitting.value = false
   }

@@ -122,7 +122,7 @@ const handleSubmit = async () => {
     emit('close')
   } catch (err: any) {
     console.error('Erro ao cadastrar despesa fixa:', err)
-    errorMessage.value = err.response?.data?.message || 'Falha ao cadastrar a despesa. Verifique os dados.'
+    errorMessage.value = err.message || err.response?.data?.message || 'Falha ao cadastrar a despesa. Verifique os dados.'
   } finally {
     isSubmitting.value = false
   }

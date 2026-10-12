@@ -33,8 +33,12 @@ watch(
 
       paymentDate.value = props.bill.current_payment?.occurred_at || new Date().toISOString().split('T')[0] || ''
 
-      if (props.bill.preferred_bank_account_id) {
-        selectedPaymentTarget.value = `account_${props.bill.preferred_bank_account_id}`
+      // Verificar se a conta preferida realmente existe nas contas do workspace
+      const preferredId = props.bill.preferred_bank_account_id
+      const hasPreferred = preferredId && store.bankAccounts.some(acc => acc.id === preferredId)
+
+      if (hasPreferred) {
+        selectedPaymentTarget.value = `account_${preferredId}`
       } else if (store.bankAccounts.length > 0 && store.bankAccounts[0]) {
         selectedPaymentTarget.value = `account_${store.bankAccounts[0].id}`
       } else {
@@ -54,8 +58,8 @@ const handleSubmit = async () => {
     return
   }
 
-  let bankAccountId: number | undefined = undefined
-  let creditCardId: number | undefined = undefined
+  let bankAccountId: number | null = null
+  let creditCardId: number | null = null
 
   if (selectedPaymentTarget.value.startsWith('account_')) {
     bankAccountId = Number(selectedPaymentTarget.value.replace('account_', ''))
@@ -78,7 +82,7 @@ const handleSubmit = async () => {
     emit('close')
   } catch (err: any) {
     console.error('Erro ao registrar pagamento:', err)
-    errorMessage.value = err.response?.data?.message || 'Falha ao registrar o pagamento. Tente novamente.'
+    errorMessage.value = err.message || err.response?.data?.message || 'Falha ao registrar o pagamento. Tente novamente.'
   } finally {
     isSubmitting.value = false
   }

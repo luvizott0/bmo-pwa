@@ -1138,8 +1138,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
     data?: {
       amount?: number
       payment_date?: string
-      bank_account_id?: number
-      credit_card_id?: number
+      bank_account_id?: number | null
+      credit_card_id?: number | null
     }
   ) => {
     const res = await financialService.payFixedBill(billId, data)

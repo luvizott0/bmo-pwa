@@ -135,7 +135,7 @@ export const financialService = {
     return api.get(url)
   },
 
-  payFixedBill: async (billId: number, data?: { amount?: number; payment_date?: string; bank_account_id?: number; credit_card_id?: number }) => {
+  payFixedBill: async (billId: number, data?: { amount?: number; payment_date?: string; bank_account_id?: number | null; credit_card_id?: number | null }) => {
     return api.post(`/fixed-bills/${billId}/pay`, data || {})
   },
 
