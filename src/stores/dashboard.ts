@@ -1160,7 +1160,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const syncFixedBillsEmails = async () => {
     const res = await financialService.syncFixedBillsEmails()
     await fetchDashboardData()
-    return res?.data
+    return res
   }
 
   // Load cached state on initialization

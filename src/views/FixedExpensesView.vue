@@ -31,6 +31,7 @@ const isPayModalOpen = ref(false)
 const isHistoryModalOpen = ref(false)
 const isSyncingEmails = ref(false)
 const syncFeedback = ref<string | null>(null)
+const syncFeedbackError = ref(false)
 
 const selectedBillForPay = ref<FixedBill | null>(null)
 const selectedBillForHistory = ref<FixedBill | null>(null)
@@ -93,17 +94,20 @@ const handleSyncEmails = async () => {
   if (isSyncingEmails.value) return
   isSyncingEmails.value = true
   syncFeedback.value = null
+  syncFeedbackError.value = false
   try {
     const res = await store.syncFixedBillsEmails()
     syncFeedback.value = res?.message || 'E-mails verificados com sucesso!'
+    syncFeedbackError.value = false
     setTimeout(() => {
       syncFeedback.value = null
-    }, 6000)
+    }, 10000)
   } catch (err: any) {
     syncFeedback.value = err?.message || 'Não foi possível sincronizar os e-mails no momento.'
+    syncFeedbackError.value = true
     setTimeout(() => {
       syncFeedback.value = null
-    }, 45000)
+    }, 60000)
   } finally {
     isSyncingEmails.value = false
   }
@@ -160,13 +164,21 @@ const handleSyncEmails = async () => {
 
     <div
       v-if="syncFeedback"
-      class="px-4 py-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3"
+      :class="[
+        'px-4 py-3 rounded-2xl border text-xs sm:text-sm font-semibold flex items-center justify-between gap-3',
+        syncFeedbackError
+          ? 'bg-amber-50 border-amber-200 text-amber-900'
+          : 'bg-indigo-50 border-indigo-100 text-indigo-900'
+      ]"
     >
       <span class="select-all">{{ syncFeedback }}</span>
       <button
         type="button"
         @click="syncFeedback = null"
-        class="text-xs font-bold text-indigo-600 hover:text-indigo-800 shrink-0 cursor-pointer"
+        :class="[
+          'text-xs font-bold shrink-0 cursor-pointer',
+          syncFeedbackError ? 'text-amber-700 hover:text-amber-900' : 'text-indigo-600 hover:text-indigo-800'
+        ]"
       >
         Fechar
       </button>
