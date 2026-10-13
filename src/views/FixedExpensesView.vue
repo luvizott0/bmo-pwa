@@ -98,12 +98,12 @@ const handleSyncEmails = async () => {
     syncFeedback.value = res?.message || 'E-mails verificados com sucesso!'
     setTimeout(() => {
       syncFeedback.value = null
-    }, 4500)
+    }, 6000)
   } catch (err: any) {
     syncFeedback.value = err?.message || 'Não foi possível sincronizar os e-mails no momento.'
     setTimeout(() => {
       syncFeedback.value = null
-    }, 5000)
+    }, 45000)
   } finally {
     isSyncingEmails.value = false
   }
@@ -160,9 +160,16 @@ const handleSyncEmails = async () => {
 
     <div
       v-if="syncFeedback"
-      class="px-4 py-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs sm:text-sm font-semibold flex items-center justify-between"
+      class="px-4 py-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3"
     >
-      <span>{{ syncFeedback }}</span>
+      <span class="select-all">{{ syncFeedback }}</span>
+      <button
+        type="button"
+        @click="syncFeedback = null"
+        class="text-xs font-bold text-indigo-600 hover:text-indigo-800 shrink-0 cursor-pointer"
+      >
+        Fechar
+      </button>
     </div>
 
     <!-- Overview Metric Cards -->
