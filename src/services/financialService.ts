@@ -155,6 +155,10 @@ export const financialService = {
     return api.delete(`/fixed-bills/${id}`)
   },
 
+  syncFixedBillsEmails: async () => {
+    return api.post('/fixed-bills/sync-emails')
+  },
+
   // Subscriptions (Assinaturas e Rateio)
   getSubscriptions: async () => {
     return api.get('/subscriptions')

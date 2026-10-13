@@ -263,6 +263,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
             color_hex: bill.color_hex || '#3b82f6',
             type: bill.type || 'expense',
             estimated_amount: Number(bill.estimated_amount || 0),
+            current_month_amount: bill.current_month_amount !== undefined
+              ? Number(bill.current_month_amount)
+              : Number(bill.estimated_amount || 0),
             due_day: Number(bill.due_day || 1),
             category_id: bill.category_id,
             preferred_bank_account_id: bill.preferred_bank_account_id,
@@ -276,6 +279,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
             status_text,
             is_paid: isPaid,
             current_payment: bill.current_payment,
+            current_invoice: bill.current_invoice || null,
             payments: bill.payments || [],
           }
         })
@@ -1153,6 +1157,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
     return res
   }
 
+  const syncFixedBillsEmails = async () => {
+    const res = await financialService.syncFixedBillsEmails()
+    await fetchDashboardData()
+    return res?.data
+  }
+
   // Load cached state on initialization
   loadStateFromStorage()
 
@@ -1206,5 +1216,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     deleteFixedBill,
     payFixedBill,
     unpayFixedBill,
+    syncFixedBillsEmails,
   }
 })

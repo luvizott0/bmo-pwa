@@ -29,7 +29,7 @@ watch(
     if (open && props.bill) {
       amount.value = props.bill.is_paid && props.bill.current_payment?.amount
         ? props.bill.current_payment.amount
-        : props.bill.estimated_amount
+        : (props.bill.current_month_amount || props.bill.current_invoice?.amount || props.bill.estimated_amount)
 
       paymentDate.value = props.bill.current_payment?.occurred_at || new Date().toISOString().split('T')[0] || ''
 

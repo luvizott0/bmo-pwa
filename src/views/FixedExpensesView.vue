@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  MailSearch,
 } from 'lucide-vue-next'
 import { useDashboardStore } from '@/stores/dashboard'
 import { formatCurrency } from '@/utils/formatters'
@@ -28,6 +29,8 @@ onMounted(async () => {
 const isBillModalOpen = ref(false)
 const isPayModalOpen = ref(false)
 const isHistoryModalOpen = ref(false)
+const isSyncingEmails = ref(false)
+const syncFeedback = ref<string | null>(null)
 
 const selectedBillForPay = ref<FixedBill | null>(null)
 const selectedBillForHistory = ref<FixedBill | null>(null)
@@ -35,16 +38,19 @@ const selectedBillForHistory = ref<FixedBill | null>(null)
 // Computed metrics for House Bills only
 const billsCount = computed(() => store.upcomingBills.length)
 
-// Total expected amount for the month
+// Total expected amount for the month (uses synced invoice amount if available)
 const totalExpectedMonthly = computed(() => {
-  return store.upcomingBills.reduce((acc, b) => acc + (b.estimated_amount || 0), 0)
+  return store.upcomingBills.reduce(
+    (acc, b) => acc + (b.current_month_amount || b.current_invoice?.amount || b.estimated_amount || 0),
+    0
+  )
 })
 
 // Total paid this month
 const totalPaidThisMonth = computed(() => {
   return store.upcomingBills
     .filter(b => b.is_paid)
-    .reduce((acc, b) => acc + (b.current_payment?.amount || b.estimated_amount || 0), 0)
+    .reduce((acc, b) => acc + (b.current_payment?.amount || b.current_month_amount || b.estimated_amount || 0), 0)
 })
 
 // Total pending this month
@@ -82,6 +88,26 @@ const handleDeleteBill = async (billId: number) => {
 const handleRefresh = async () => {
   await store.fetchDashboardData()
 }
+
+const handleSyncEmails = async () => {
+  if (isSyncingEmails.value) return
+  isSyncingEmails.value = true
+  syncFeedback.value = null
+  try {
+    const res = await store.syncFixedBillsEmails()
+    syncFeedback.value = res?.message || 'E-mails verificados com sucesso!'
+    setTimeout(() => {
+      syncFeedback.value = null
+    }, 4500)
+  } catch (err: any) {
+    syncFeedback.value = err?.message || 'Não foi possível sincronizar os e-mails no momento.'
+    setTimeout(() => {
+      syncFeedback.value = null
+    }, 5000)
+  } finally {
+    isSyncingEmails.value = false
+  }
+}
 </script>
 
 <template>
@@ -112,6 +138,17 @@ const handleRefresh = async () => {
       <div class="flex items-center gap-2.5">
         <button
           type="button"
+          :disabled="isSyncingEmails"
+          @click="handleSyncEmails"
+          class="inline-flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs sm:text-sm font-bold shadow-2xs transition cursor-pointer disabled:opacity-60"
+          title="Verificar novas faturas de Luz (CPFL) e Internet (Alares) no e-mail"
+        >
+          <MailSearch :class="['w-4 h-4 text-indigo-600', isSyncingEmails ? 'animate-bounce' : '']" />
+          <span>{{ isSyncingEmails ? 'Buscando Faturas...' : 'Checar E-mails' }}</span>
+        </button>
+
+        <button
+          type="button"
           @click="isBillModalOpen = true"
           class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer"
         >
@@ -120,6 +157,13 @@ const handleRefresh = async () => {
         </button>
       </div>
     </header>
+
+    <div
+      v-if="syncFeedback"
+      class="px-4 py-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs sm:text-sm font-semibold flex items-center justify-between"
+    >
+      <span>{{ syncFeedback }}</span>
+    </div>
 
     <!-- Overview Metric Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">

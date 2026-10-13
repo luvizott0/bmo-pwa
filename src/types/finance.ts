@@ -66,6 +66,15 @@ export interface FixedBillPayment {
   credit_card_id?: number | null
 }
 
+export interface FixedBillInvoice {
+  id: number
+  amount: number
+  occurred_at: string
+  status: string
+  barcode?: string | null
+  pix_code?: string | null
+}
+
 export interface FixedBill {
   id: number
   workspace_id?: number
@@ -74,6 +83,7 @@ export interface FixedBill {
   icon_type?: string
   type: 'expense' | 'income'
   estimated_amount: number
+  current_month_amount?: number
   due_day: number
   category_id?: number | null
   preferred_bank_account_id?: number | null
@@ -87,6 +97,7 @@ export interface FixedBill {
   status_text: string
   is_paid?: boolean
   current_payment?: FixedBillPayment | null
+  current_invoice?: FixedBillInvoice | null
   payments?: FixedBillPayment[]
 }
 

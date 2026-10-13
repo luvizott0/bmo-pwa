@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import {
   Droplets,
   Zap,
@@ -13,6 +13,10 @@ import {
   Clock,
   Trash2,
   Building2,
+  Copy,
+  QrCode,
+  Barcode,
+  MailCheck,
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import type { FixedBill } from '@/types/finance'
@@ -27,6 +31,22 @@ const emit = defineEmits<{
   (e: 'viewHistory', bill: FixedBill): void
   (e: 'delete', billId: number): void
 }>()
+
+const copiedType = ref<'pix' | 'barcode' | null>(null)
+
+const copyCode = async (code: string, type: 'pix' | 'barcode') => {
+  try {
+    await navigator.clipboard.writeText(code)
+    copiedType.value = type
+    setTimeout(() => {
+      if (copiedType.value === type) {
+        copiedType.value = null
+      }
+    }, 2200)
+  } catch (e) {
+    console.warn('Falha ao copiar código', e)
+  }
+}
 
 const iconComponent = computed(() => {
   const lower = props.bill.name.toLowerCase()
@@ -58,7 +78,8 @@ const iconComponent = computed(() => {
     lower.includes('wifi') ||
     lower.includes('banda larga') ||
     lower.includes('claro') ||
-    lower.includes('vivo')
+    lower.includes('vivo') ||
+    lower.includes('alares')
   ) {
     return Wifi
   }
@@ -81,6 +102,7 @@ const isVariableCost = computed(() => {
     lower.includes('agua') ||
     lower.includes('luz') ||
     lower.includes('energia') ||
+    lower.includes('cpfl') ||
     lower.includes('gás') ||
     lower.includes('gas')
   )
@@ -98,9 +120,19 @@ const dueText = computed(() => {
   return `Venceu dia ${props.bill.due_day} (${Math.abs(diff)}d atrás)`
 })
 
+const hasSyncedInvoice = computed(() => {
+  return !!props.bill.current_invoice
+})
+
 const currentAmount = computed(() => {
   if (props.bill.is_paid && props.bill.current_payment?.amount) {
     return props.bill.current_payment.amount
+  }
+  if (props.bill.current_month_amount !== undefined) {
+    return props.bill.current_month_amount
+  }
+  if (props.bill.current_invoice?.amount) {
+    return props.bill.current_invoice.amount
   }
   return props.bill.estimated_amount
 })
@@ -131,7 +163,16 @@ const paymentsCount = computed(() => {
               </h3>
 
               <span
-                v-if="isVariableCost"
+                v-if="hasSyncedInvoice && !bill.is_paid"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 tracking-wider uppercase border border-indigo-100"
+                title="Fatura deste mês extraída automaticamente do e-mail"
+              >
+                <MailCheck class="w-3 h-3" />
+                <span>Fatura no E-mail</span>
+              </span>
+
+              <span
+                v-else-if="isVariableCost"
                 class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 tracking-wider uppercase border border-amber-100"
                 title="O valor desta conta varia de acordo com o consumo no mês"
               >
@@ -179,9 +220,37 @@ const paymentsCount = computed(() => {
             </button>
           </div>
           <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-            {{ bill.is_paid ? 'Valor Pago no Mês' : (isVariableCost ? 'Valor Estimado' : 'Valor Mensal') }}
+            {{ bill.is_paid ? 'Valor Pago no Mês' : (hasSyncedInvoice ? 'Fatura do Mês' : (isVariableCost ? 'Valor Estimado' : 'Valor Mensal')) }}
           </span>
         </div>
+      </div>
+
+      <!-- Quick Copy Pix / Barcode Row (when synced from email) -->
+      <div
+        v-if="!bill.is_paid && (bill.current_invoice?.pix_code || bill.current_invoice?.barcode)"
+        class="mt-4 pt-3 border-t border-dashed border-slate-100 flex flex-wrap items-center gap-2"
+      >
+        <button
+          v-if="bill.current_invoice?.pix_code"
+          type="button"
+          @click="copyCode(bill.current_invoice.pix_code, 'pix')"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/70 transition cursor-pointer"
+        >
+          <Check v-if="copiedType === 'pix'" class="w-3.5 h-3.5 text-teal-600 stroke-[3]" />
+          <QrCode v-else class="w-3.5 h-3.5 text-teal-600" />
+          <span>{{ copiedType === 'pix' ? 'Pix Copiado!' : 'Copiar Pix Copia e Cola' }}</span>
+        </button>
+
+        <button
+          v-if="bill.current_invoice?.barcode"
+          type="button"
+          @click="copyCode(bill.current_invoice.barcode, 'barcode')"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition cursor-pointer"
+        >
+          <Check v-if="copiedType === 'barcode'" class="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+          <Barcode v-else class="w-3.5 h-3.5 text-slate-500" />
+          <span>{{ copiedType === 'barcode' ? 'Código Copiado!' : 'Copiar Código de Barras' }}</span>
+        </button>
       </div>
     </div>
 
@@ -244,3 +313,4 @@ const paymentsCount = computed(() => {
     </div>
   </div>
 </template>
+
